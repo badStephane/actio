@@ -1,4 +1,8 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
+
+/* Mêmes sources qu'en Tailwind 3 (content) : sans cela, la détection automatique lit aussi docs/ et les maquettes. */
+@source '../index.html';
+@source '../src';
 
 /*
   Tokens du plan design (docs/squad/02-design-ux.md §2), ex-tailwind.config.js (Tailwind 3).
