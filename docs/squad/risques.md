@@ -11,3 +11,4 @@
 | R7 | Recette sur vrai poste Windows impossible depuis cet environnement (macOS) : sauvegarde, restauration, updater non exécutés de bout en bout | Majeur | QA / utilisateur | Avant tag | Ouvert : smoke manuel 10 min (docs/RELEASE.md) |
 | R8 | QA7-01 : import CSV « 03/04/2026 » enregistré au 4 mars | Majeur | Back | Avant tag 2.1.0 | En correction (D17) |
 | R9 | Smoke test Windows (12 parcours, 07-qa.md §5) non exécuté : CSP WebView2, restauration réelle, rename après fermeture du pool, updater | Bloquant pour le tag | Utilisateur (exécution et signature) | Avant publication 2.1.0 | Ouvert |
+| R10 | Contrôle des imports rc.1/rc.2 : « Appliquer toutes les suggestions » inversait des dates justes (392 lignes faussées sur le poste Mac pilote) | Bloquant | Front / PM | Avant tout tag de finale | Corrigé (D31), données du Mac rétablies ; à revérifier au smoke de la prochaine rc : aucune date ambiguë mais cohérente proposée |

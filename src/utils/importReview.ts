@@ -4,7 +4,7 @@ import { logEvent } from './audit';
 import { DEMO_MODE } from './demo';
 import { getRegistrations } from './storage';
 import { getActivities } from './activities';
-import { isRealDate, toIsoDateString } from './dates';
+import { isRealDate, toIsoDateString, todayLocalIso } from './dates';
 
 /**
  * Contrôle des imports faits avant la version 2.1.0 (avenant A1) : l'ancien import xlsx a pu
@@ -58,6 +58,19 @@ export const swappedDate = (iso: string): string | undefined => {
 };
 
 /**
+ * Correction de date proposée seulement s'il y a une preuve d'inversion : la date tombe après le
+ * jour de saisie, et l'inversion la ramène au jour de saisie ou avant. Une date ambiguë mais
+ * cohérente (07/05 saisi le 7 mai) n'est jamais signalée : en rc.1, l'inverser sans preuve a
+ * faussé 392 dates justes via « Appliquer toutes les suggestions ».
+ */
+export const swappedDateIfInconsistent = (iso: string, createdAt: number): string | undefined => {
+  const createdDay = todayLocalIso(new Date(createdAt));
+  if (iso <= createdDay) return undefined;
+  const swapped = swappedDate(iso);
+  return swapped !== undefined && swapped <= createdDay ? swapped : undefined;
+};
+
+/**
  * Cœur pur de l'heuristique.
  * @param importedBefore seules les inscriptions créées avant cet instant (ms) sont considérées
  *   comme issues de l'ancien import ; les imports faits avec la version corrigée ne sont pas suspects.
@@ -108,7 +121,9 @@ export const detectSuspicious = (
       suggestedAmount = amount * THOUSAND;
     }
 
-    const swapped = isImported ? swappedDate(registration.registrationDate) : undefined;
+    const swapped = isImported
+      ? swappedDateIfInconsistent(registration.registrationDate, registration.createdAt)
+      : undefined;
     if (swapped) {
       reasons.push('date_ambiguous');
       suggestedDate = swapped;
