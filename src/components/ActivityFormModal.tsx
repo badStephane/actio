@@ -11,8 +11,8 @@ interface ActivityFormModalProps {
 }
 
 const COLOR_PALETTE = [
-  '#3b82f6', // blue
-  '#10b981', // emerald
+  '#2563B8', // bleu du logo (distinct du bleu ciel de Wave)
+  '#65A30D', // vert tilleul (distinct du vert des Espèces)
   '#f59e0b', // amber
   '#8b5cf6', // purple
   '#ec4899', // pink
@@ -122,7 +122,7 @@ const ActivityFormModal: React.FC<ActivityFormModalProps> = ({ open, activity, o
       >
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-blue-600" />
+            <CalendarDays className="h-4 w-4 text-brand-600" />
             <h3 id="activity-form-title" className="text-sm font-semibold text-gray-800">
               {isEdit ? "Modifier l'activité" : 'Nouvelle activité'}
             </h3>

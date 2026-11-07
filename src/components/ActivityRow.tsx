@@ -119,7 +119,7 @@ export default ActivityRow;
 
 /** Chargement des activités (U28) : 4 lignes en skeleton plutôt qu'un spinner. */
 export const ActivityListSkeleton: React.FC = () => (
-  <div className="p-6 max-w-3xl space-y-2" aria-busy="true">
+  <div className="page space-y-2" aria-busy="true">
     <div className="flex justify-end mb-4"><div className="skeleton h-8 w-40 rounded" /></div>
     {Array.from({ length: 4 }).map((_, i) => (
       <div key={i} className="panel px-3 py-3 flex items-center gap-3">

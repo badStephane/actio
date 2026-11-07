@@ -61,6 +61,17 @@ export type ActivityStatus =
   | { kind: 'today' }
   | { kind: 'past'; eventDate: string };
 
+/**
+ * Libellé de la barre d'activité de l'accueil (Lot 3, a) : « en cours » seulement si l'activité a
+ * lieu aujourd'hui ou plus tard. Sinon « Activité suivie » : le mot décrit le rôle du tableau de bord
+ * (l'activité qu'il suit), pas l'état de l'événement, et ne contredit donc jamais « Terminée le … ».
+ * Une activité terminée perd sa pastille de couleur au profit d'une pastille neutre.
+ */
+export const activityHeading = (status: ActivityStatus): { label: string; isNeutralDot: boolean } => {
+  if (status.kind === 'today' || status.kind === 'upcoming') return { label: 'Activité en cours', isNeutralDot: false };
+  return { label: 'Activité suivie', isNeutralDot: status.kind === 'past' };
+};
+
 /** Statut toujours vrai de l'activité (U11) : jamais « en cours » avec une durée passée. */
 export const activityStatus = (a: Pick<Activity, 'eventDate'>, today: string = todayLocalIso()): ActivityStatus => {
   if (!a.eventDate) return { kind: 'undated' };

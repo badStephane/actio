@@ -103,11 +103,11 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
     <div className={containerClass} role="dialog" aria-modal="true" aria-labelledby="lock-title">
       <div className={`panel shadow-2xl w-full max-w-sm mx-4 ${shake ? 'animate-shake' : ''}`}>
         <div className="px-5 pt-5 pb-3 text-center border-b border-gray-200">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 mb-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-50 mb-3">
             {isSetup ? (
-              <ShieldCheck className="h-6 w-6 text-blue-600" aria-hidden="true" />
+              <ShieldCheck className="h-6 w-6 text-brand-600" aria-hidden="true" />
             ) : (
-              <Lock className="h-6 w-6 text-blue-600" aria-hidden="true" />
+              <Lock className="h-6 w-6 text-brand-600" aria-hidden="true" />
             )}
           </div>
           <h1 id="lock-title" className="text-base font-semibold text-gray-900">

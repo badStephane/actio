@@ -109,7 +109,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
   const renderHeader = (subtitle?: string) => (
     <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
       <div className="flex items-center gap-2 min-w-0">
-        <FileUp className="h-4 w-4 text-blue-600 flex-shrink-0" aria-hidden="true" />
+        <FileUp className="h-4 w-4 text-brand-600 flex-shrink-0" aria-hidden="true" />
         <div className="min-w-0">
           <h3 id="import-modal-title" className="text-sm font-semibold text-gray-800 truncate">
             Importer dans « {activity.name} »
@@ -168,7 +168,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
 
               <button
                 onClick={handlePickClick}
-                className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/30 rounded p-6 text-center transition-colors"
+                className="w-full border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/30 rounded p-6 text-center transition-colors"
               >
                 <FileSpreadsheet className="h-8 w-8 text-gray-500 mx-auto mb-2" aria-hidden="true" />
                 <p className="text-sm font-medium text-gray-700">Sélectionner un fichier</p>
@@ -200,7 +200,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
           <>
             {renderHeader('Lecture du fichier...')}
             <div className="p-10 flex flex-col items-center justify-center" aria-busy="true">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mb-3" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent mb-3" />
               <p className="text-sm text-gray-700">Analyse en cours...</p>
             </div>
           </>
@@ -236,7 +236,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
           <>
             {renderHeader('Importation...')}
             <div className="p-10 flex flex-col items-center justify-center" aria-busy="true">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mb-3" />
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent mb-3" />
               <p className="text-sm text-gray-700">Enregistrement en base...</p>
             </div>
           </>

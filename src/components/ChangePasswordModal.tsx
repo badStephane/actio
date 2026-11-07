@@ -94,7 +94,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
       >
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-blue-600" />
+            <KeyRound className="h-4 w-4 text-brand-600" />
             <h3 id="change-password-title" className="text-sm font-semibold text-gray-800">
               Changer le mot de passe
             </h3>

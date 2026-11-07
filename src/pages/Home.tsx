@@ -9,6 +9,7 @@ import LoadError from '../components/LoadError';
 import ImportReviewBanner from '../components/ImportReviewBanner';
 import { formatAmount, formatDateLong } from '../components/uiFormat';
 import {
+  activityHeading,
   activityStatus,
   pickCurrentActivity,
   readCurrentActivityId,
@@ -29,7 +30,7 @@ interface DashboardData {
 }
 
 const HomeSkeleton: React.FC = () => (
-  <div className="p-6 max-w-6xl" aria-busy="true">
+  <div className="page" aria-busy="true">
     <div className="skeleton h-14 w-full rounded mb-4" />
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
@@ -105,7 +106,7 @@ const Home: React.FC = () => {
 
   if (liveActivities.length === 0) {
     return (
-      <div className="p-6 max-w-6xl">
+      <div className="page">
         <div className="panel p-8 text-center">
           <CalendarDays className="h-8 w-8 text-ink-muted mx-auto mb-2" aria-hidden="true" />
           <p className="text-sm font-semibold text-ink mb-1">Aucune activité active</p>
@@ -123,34 +124,40 @@ const Home: React.FC = () => {
   // m11 : la nouvelle inscription part avec l'activité affichée présélectionnée.
   const addHref = currentActivity ? `/add?activity=${encodeURIComponent(currentActivity.id)}` : '/add';
   const listHref = currentActivity ? `/registrations?activity=${encodeURIComponent(currentActivity.id)}` : '/registrations';
+  const status = currentActivity ? activityStatus(currentActivity, today) : null;
+  const heading = activityHeading(status ?? { kind: 'undated' });
 
   return (
-    <div className="p-6 max-w-6xl">
+    <div className="page">
       <ImportReviewBanner />
 
       {/* Barre d'activité (U11, U13) : statut toujours vrai, action principale à portée. */}
-      <div className="mb-4 panel px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="inline-block h-3 w-3 rounded-full shrink-0 border border-gray-500"
-            style={{ backgroundColor: currentActivity?.color ?? '#9CA3AF' }}
-            aria-hidden="true"
-          />
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-ink-muted">Activité en cours</p>
-            <p className="text-base font-semibold text-ink truncate">{currentActivity?.name ?? 'Aucune'}</p>
+      {/* Lot 3, c) : deux groupes ; s'ils ne tiennent pas sur une ligne, le groupe d'actions passe
+          entier à la ligne, aligné à droite, sans séparer ses contrôles. */}
+      <div className="mb-4 panel px-4 py-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex items-center gap-x-4 gap-y-2 min-w-0 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="inline-block h-3 w-3 rounded-full shrink-0 border border-gray-500"
+              style={{ backgroundColor: heading.isNeutralDot ? '#E5E7EB' : currentActivity?.color ?? '#9CA3AF' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-ink-muted">{heading.label}</p>
+              <p className="text-base font-semibold text-ink truncate">{currentActivity?.name ?? 'Aucune'}</p>
+            </div>
           </div>
+          {status && <ActivityStatusBadge status={status} />}
         </div>
-        {currentActivity && <ActivityStatusBadge status={activityStatus(currentActivity, today)} />}
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-sm text-ink-soft">
-            <span>Changer :</span>
+        <div className="ml-auto flex items-center gap-2">
+          <label className="flex items-center">
+            <span className="sr-only">Activité affichée</span>
             <select
               value={currentActivityId}
               onChange={(e) => setCurrentActivityId(e.target.value)}
-              aria-label="Choisir l'activité affichée"
-              className="input-field w-auto h-control"
+              title="Changer l'activité affichée"
+              className="input-field w-auto max-w-[15rem] h-control"
             >
               {liveActivities.map(a => (
                 <option key={a.id} value={a.id}>
@@ -193,7 +200,7 @@ const Home: React.FC = () => {
         />
         <KpiCard
           icon={<CalendarClock className="h-4 w-4" />}
-          iconClass="bg-blue-100 text-blue-700"
+          iconClass="bg-brand-100 text-brand-700"
           label="Aujourd'hui"
           value={(stats?.todayCount ?? 0).toLocaleString('fr-FR')}
           hint={stats && stats.todayCount > 0 ? formatAmount(stats.todayAmount) : 'Aucune aujourd’hui'}

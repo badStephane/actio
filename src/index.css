@@ -18,7 +18,7 @@
   }
   /* Sur fond sombre (sidebar) : anneau blanc. */
   .on-dark :focus-visible {
-    @apply ring-white ring-offset-gray-900;
+    @apply ring-white ring-offset-brand-900;
   }
 
   /* Scrollbar styling for desktop feel */
@@ -37,11 +37,13 @@
 }
 
 @layer components {
+  /* 3.3 : toutes les tailles en texte 14 px ; 36 px par défaut, plus aucun bouton de 28 px. */
   .btn {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border transition-colors duration-100 select-none;
+    @apply inline-flex items-center justify-center gap-1.5 min-h-control px-3 py-1.5 text-sm font-medium rounded-control border transition-colors duration-fast select-none;
   }
+  /* Primaire aux couleurs du logo : blanc sur brand-600 5,9:1, survol brand-700 8,1:1. */
   .btn-primary {
-    @apply bg-blue-600 border-blue-700 text-white hover:bg-blue-700 active:bg-blue-800;
+    @apply bg-brand-600 border-brand-700 text-white hover:bg-brand-700 active:bg-brand-900;
   }
   .btn-default {
     @apply bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100;
@@ -55,14 +57,14 @@
     @apply bg-amber-700 border-amber-800 text-white hover:bg-amber-800 active:bg-amber-900;
   }
   .btn-danger {
-    @apply bg-red-600 border-red-700 text-white hover:bg-red-700 active:bg-red-800;
+    @apply bg-danger border-red-800 text-white hover:bg-red-800 active:bg-red-900;
   }
   .btn-ghost {
     @apply bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200;
   }
   /* Actions secondaires et lignes de tableau : 32 px, texte 14 px (Lot 2). */
   .btn-sm {
-    @apply min-h-8 px-2.5 text-sm rounded-control;
+    @apply min-h-8 px-2.5 py-1 text-sm rounded-control;
   }
   /* Bouton icône seule : cible de 36 px, nom accessible obligatoire (aria-label). */
   .btn-icon {
@@ -96,8 +98,14 @@
     @apply inline-flex items-center px-1 rounded border text-xs font-normal leading-4;
   }
 
+  /* 3.2 : cartes et modales en 8 px avec un léger relief. */
   .panel {
-    @apply bg-white border border-gray-200 rounded;
+    @apply bg-white border border-gray-200 rounded-card shadow-card;
+  }
+
+  /* 3.2 : conteneur unique de toutes les pages ; le contenu commence à 232 px (sidebar 208 + 24). */
+  .page {
+    @apply w-full max-w-6xl px-6 py-5;
   }
 
   .toolbar {

@@ -1,6 +1,6 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Download, Search, ClipboardList, PlusCircle, ArrowLeft, Layers } from 'lucide-react';
+import { ClipboardList, PlusCircle } from 'lucide-react';
 import { getRegistrations, deleteRegistration } from '../utils/storage';
 import { exportToExcel } from '../utils/excelExport';
 import { getActivities } from '../utils/activities';
@@ -13,7 +13,7 @@ import { ActivityPicker, RegistrationListSkeleton, RegistrationStatsStrip } from
 import { useToast } from './useToast';
 import { useFlashToast } from './useFlashToast';
 import { errorMessage } from './uiFormat';
-import { PAYMENT_METAS } from './paymentMeta';
+import RegistrationListToolbar from './RegistrationListToolbar';
 import {
   EMPTY_FILTERS,
   ListFilters,
@@ -136,79 +136,19 @@ const RegistrationList: React.FC = () => {
   const selectedActivity = activitiesById[filters.activity];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="page h-full flex flex-col gap-3 min-h-0">
       <RegistrationStatsStrip rows={filteredRegistrations} />
 
-      <div className="toolbar flex-wrap gap-y-2">
-        <button type="button" onClick={() => setIsPickerOpen(true)} className="btn btn-default btn-sm">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Changer de liste
-        </button>
-        <div className="inline-flex items-center gap-1.5 px-2 min-h-8 rounded-control bg-gray-100 text-sm text-ink max-w-[220px]" aria-live="polite">
-          {filters.activity ? (
-            <>
-              <span className="h-2.5 w-2.5 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: selectedActivity?.color ?? '#9CA3AF' }} aria-hidden="true" />
-              <span className="truncate font-semibold">{selectedActivity?.name ?? 'Activité supprimée'}</span>
-            </>
-          ) : (
-            <>
-              <Layers className="h-4 w-4 text-ink-muted flex-shrink-0" aria-hidden="true" />
-              <span className="truncate font-semibold">Toutes les activités</span>
-            </>
-          )}
-        </div>
-
-        <div className="relative">
-          <label htmlFor="list-search" className="sr-only">Rechercher par nom, prénom ou téléphone</label>
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" aria-hidden="true" />
-          <input
-            id="list-search"
-            type="search"
-            placeholder="Nom, prénom ou téléphone"
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-            className="input-field h-8 pl-8 w-72"
-          />
-        </div>
-
-        <select
-          value={filters.payment}
-          onChange={(e) => setFilter('payment', e.target.value)}
-          aria-label="Filtrer par mode de paiement"
-          className="input-field w-auto h-8 py-0"
-        >
-          <option value="">Tous les modes de paiement</option>
-          {PAYMENT_METAS.map(m => (
-            <option key={m.type} value={m.type}>{m.label}</option>
-          ))}
-        </select>
-
-        <label className="flex items-center gap-1 text-sm text-ink-soft">
-          Du
-          <input type="date" value={filters.dateFrom} onChange={(e) => setFilter('dateFrom', e.target.value)}
-            max={filters.dateTo || undefined} aria-label="Date de début" className="input-field w-auto h-8 py-0" />
-        </label>
-        <label className="flex items-center gap-1 text-sm text-ink-soft">
-          Au
-          <input type="date" value={filters.dateTo} onChange={(e) => setFilter('dateTo', e.target.value)}
-            min={filters.dateFrom || undefined} aria-label="Date de fin" className="input-field w-auto h-8 py-0" />
-        </label>
-
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-sm text-ink-muted tabular-nums">
-            {filteredRegistrations.length} / {registrations.length} inscription(s)
-          </span>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={filteredRegistrations.length === 0}
-            className="btn btn-success btn-sm disabled:opacity-50 disabled:pointer-events-none"
-          >
-            <Download className="h-4 w-4" aria-hidden="true" />
-            Exporter Excel
-          </button>
-        </div>
-      </div>
+      <section className="panel flex-1 min-h-0 flex flex-col overflow-hidden">
+      <RegistrationListToolbar
+        filters={filters}
+        selectedActivity={selectedActivity}
+        shownCount={filteredRegistrations.length}
+        totalCount={registrations.length}
+        onChangeList={() => setIsPickerOpen(true)}
+        onFilterChange={setFilter}
+        onExport={handleExport}
+      />
 
       <div className="flex-1 overflow-auto">
         {filteredRegistrations.length === 0 ? (
@@ -252,6 +192,7 @@ const RegistrationList: React.FC = () => {
           onPageChange={setPage}
         />
       )}
+      </section>
 
       <ConfirmModal
         open={deleteTargetId !== null}

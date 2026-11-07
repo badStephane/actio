@@ -28,7 +28,7 @@ const EVENT_ORDER = Object.keys(EVENT_LABEL) as EventType[];
 
 const EVENT_BADGE: Record<EventType, string> = {
   created: 'bg-emerald-100 text-emerald-700',
-  updated: 'bg-blue-100 text-blue-700',
+  updated: 'bg-brand-100 text-brand-700',
   deleted: 'bg-red-100 text-red-700',
   archived: 'bg-amber-100 text-amber-800',
   unarchived: 'bg-purple-100 text-purple-700',
@@ -110,8 +110,8 @@ const Audit: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col" aria-busy="true">
-        <div className="toolbar">
+      <div className="page h-full flex flex-col" aria-busy="true">
+        <div className="toolbar border rounded-card">
           <div className="skeleton h-7 w-40 rounded" />
           <div className="skeleton h-7 w-32 rounded" />
           <div className="skeleton h-7 w-48 rounded" />
@@ -132,8 +132,9 @@ const Audit: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="toolbar flex-wrap">
+    <div className="page h-full flex flex-col min-h-0">
+      <section className="panel flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="toolbar flex-wrap rounded-t-card">
         <select
           value={filterEvent}
           onChange={(e) => setFilterEvent(e.target.value as EventType | '')}
@@ -211,7 +212,7 @@ const Audit: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map(e => (
-                <tr key={e.id} className="hover:bg-blue-50/50 transition-colors duration-75">
+                <tr key={e.id} className="hover:bg-brand-50/50 transition-colors duration-75">
                   <td className="px-3 py-2 text-gray-700 tabular-nums whitespace-nowrap">
                     {formatDateTime(e.createdAt)}
                   </td>
@@ -228,6 +229,7 @@ const Audit: React.FC = () => {
           </table>
         )}
       </div>
+      </section>
 
       <ConfirmModal
         open={clearOpen}

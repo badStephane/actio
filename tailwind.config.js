@@ -8,7 +8,8 @@ export default {
       // Écrans bas (900×600, portable avec barre des tâches) : espacements compacts (Lot 2, a).
       screens: { short: { raw: '(max-height: 699px)' } },
       colors: {
-        brand: { 50: '#EEF4FB', 100: '#D9E6F6', 500: '#4B85CD', 600: '#2563B8', 700: '#1E4F94', 900: '#192A49' },
+        // 400 : filet de l'entrée active de la sidebar (3,75:1 sur le fond actif, brand-500 n'y fait que 2,78:1).
+        brand: { 50: '#EEF4FB', 100: '#D9E6F6', 400: '#6A9DDA', 500: '#4B85CD', 600: '#2563B8', 700: '#1E4F94', 900: '#192A49' },
         ink: { DEFAULT: '#111827', soft: '#374151', muted: '#4B5563' },
         surface: { DEFAULT: '#FFFFFF', app: '#F3F4F6', subtle: '#F9FAFB', line: '#D1D5DB' },
         cash: { DEFAULT: '#047857', fill: '#059669', soft: '#D1FAE5', ink: '#065F46' },

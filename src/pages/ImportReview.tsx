@@ -121,7 +121,7 @@ const ImportReview: React.FC = () => {
 
   if (loadState === 'loading') {
     return (
-      <div className="p-6 max-w-6xl space-y-2" aria-busy="true">
+      <div className="page space-y-2" aria-busy="true">
         {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton h-10 rounded" />)}
         <span className="sr-only">Recherche des inscriptions à vérifier...</span>
       </div>
@@ -134,7 +134,7 @@ const ImportReview: React.FC = () => {
 
   if (items.length === 0) {
     return (
-      <div className="p-6 max-w-6xl">
+      <div className="page">
         <div className="panel p-8 text-center" role="status">
           <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
           <p className="text-sm font-semibold text-gray-800">Aucune inscription à vérifier</p>
@@ -153,9 +153,9 @@ const ImportReview: React.FC = () => {
   const suggestedTotal = sumAmounts(withSuggestion, s => s.suggestedAmount ?? s.registration.amount);
 
   return (
-    <div className="p-6 max-w-6xl space-y-3">
+    <div className="page space-y-3">
       <div className="panel p-3 flex items-start gap-2 text-xs text-gray-700">
-        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-px" aria-hidden="true" />
+        <Info className="h-4 w-4 text-brand-600 flex-shrink-0 mt-px" aria-hidden="true" />
         <p>
           Ces inscriptions viennent d'imports Excel où des montants ou des dates ont pu être mal lus. Rien n'est
           corrigé automatiquement : comparez avec votre fichier ou vos reçus, puis appliquez la suggestion ou

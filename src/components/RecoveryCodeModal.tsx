@@ -99,7 +99,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
     if (loadState === 'loading') {
       return (
         <div className="flex justify-center items-center py-10" aria-busy="true">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand-500 border-t-transparent" />
         </div>
       );
     }
@@ -146,7 +146,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
         <div className="panel shadow-xl max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
             <div className="flex items-center gap-2">
-              <LifeBuoy className="h-4 w-4 text-blue-600" aria-hidden="true" />
+              <LifeBuoy className="h-4 w-4 text-brand-600" aria-hidden="true" />
               <h3 id="recovery-code-title" className="text-sm font-semibold text-gray-800">
                 Code de récupération
               </h3>

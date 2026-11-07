@@ -381,7 +381,7 @@ export const downloadTemplate = (): void => {
       'Téléphone': '77 000 00 01',
       Adresse: 'Dakar, Plateau',
       Montant: 5000,
-      'Type de paiement': 'wave',
+      'Mode de paiement': 'wave',
       "Date d'inscription": '15/05/2026',
     },
     {
@@ -390,7 +390,7 @@ export const downloadTemplate = (): void => {
       'Téléphone': '77 000 00 02',
       Adresse: 'Thiès',
       Montant: 3000,
-      'Type de paiement': 'espèces',
+      'Mode de paiement': 'espèces',
       "Date d'inscription": '2026-05-16',
     },
   ];

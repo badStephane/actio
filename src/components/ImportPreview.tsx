@@ -56,7 +56,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
   <div className="flex-1 overflow-auto">
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 border-b border-gray-200 bg-gray-50">
       <SummaryCard label="À importer" value={String(result.valid.length)} tone="border-l-emerald-500" />
-      <SummaryCard label="Total lu" value={formatAmount(result.totalAmount)} tone="border-l-blue-500" />
+      <SummaryCard label="Total lu" value={formatAmount(result.totalAmount)} tone="border-l-brand-500" />
       <SummaryCard label="Doublons" value={String(result.duplicates.length)} tone="border-l-amber-500" />
       <SummaryCard label="Erreurs" value={String(result.invalid.length)} tone="border-l-red-500" />
     </div>

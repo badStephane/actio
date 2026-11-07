@@ -122,7 +122,7 @@ describe('analyzeHeaders (QA-03)', () => {
   it('reconnaît les en-têtes de NOTRE export (parenthèses, apostrophe typographique)', () => {
     const exportHeaders = [
       'Activité', 'Nom', 'Prénoms', 'Téléphone', 'Adresse', "Date d'inscription",
-      'Montant (F CFA)', 'Type de paiement', 'Date de création',
+      'Montant (F CFA)', 'Mode de paiement', 'Date de création',
     ];
     const result = analyzeHeaders(exportHeaders);
     expect(result.missingColumns).toEqual([]);
@@ -256,7 +256,8 @@ describe('parseFile sur de vrais classeurs', () => {
     exportToExcel(regs, [ACTIVITY], 'test');
     expect(captured.workbooks).toHaveLength(1);
     const rows = await parseFile(workbookFile(captured.workbooks[0] as XLSX.WorkBook));
-    expect(rows.map((r) => r['Type de paiement'])).toEqual(['Orange Money', 'Espèces', 'Wave']); // libellé exporté
+    expect(rows.map((r) => r['Mode de paiement'])).toEqual(['Orange Money', 'Espèces', 'Wave']); // en-tête et libellé exportés
+    expect(rows.every((r) => !('Type de paiement' in r))).toBe(true);
     const result = validateRows(rows, FREE_ACTIVITY, []);
     expect(result.missingColumns).toEqual([]);
     expect(result.unrecognizedHeaders).toEqual([]);
@@ -367,5 +368,29 @@ describe('reprise de l’adresse depuis le carnet (D19)', () => {
     contactMocks.searchContacts.mockResolvedValue([contact({ phone: '76 000 00 00' })]);
     expect(await lookupContactAddress('Diop', 'Awa', '77 123 45 67')).toBeUndefined();
     expect(await lookupContactAddress('Diop', 'Awa', '12')).toBeUndefined();
+  });
+});
+
+describe('en-tête du mode de paiement : nouveau et ancien libellé (Lot 3)', () => {
+  const fileWithHeader = (header: string): File =>
+    sheetFile([
+      ['Nom', 'Prénoms', 'Téléphone', 'Adresse', 'Montant', header, "Date d'inscription"],
+      ['Diop', 'Awa', '77 123 45 67', 'Médina', 5000, 'Wave', '15/05/2026'],
+    ]);
+
+  it.each(['Mode de paiement', 'Type de paiement'])('« %s » est reconnu à l’import', async (header) => {
+    const rows = await parseFile(fileWithHeader(header));
+    const result = validateRows(rows, ACTIVITY, []);
+    expect(result.missingColumns).toEqual([]);
+    expect(result.unrecognizedHeaders).toEqual([]);
+    expect(result.valid[0].data?.paymentType).toBe('wave');
+  });
+
+  it('le modèle téléchargeable utilise « Mode de paiement »', async () => {
+    captured.workbooks.length = 0;
+    downloadTemplate();
+    const rows = await parseFile(workbookFile(captured.workbooks[0] as XLSX.WorkBook));
+    expect(Object.keys(rows[0])).toContain('Mode de paiement');
+    expect(Object.keys(rows[0])).not.toContain('Type de paiement');
   });
 });

@@ -239,7 +239,7 @@ const ContactBookSection: React.FC = () => {
 
         {/* Preview */}
         {importResult && (
-          <div className="panel border-blue-200 bg-blue-50/40 p-3">
+          <div className="panel border-brand-100 bg-brand-50/40 p-3">
             <p className="text-xs font-medium text-gray-800 mb-2">
               Aperçu de l'import {pendingFile && `« ${pendingFile.name} »`}
             </p>

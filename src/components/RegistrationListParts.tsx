@@ -5,8 +5,8 @@ import { formatAmount, formatDateShort } from './uiFormat';
 import { PAYMENT_METAS } from './paymentMeta';
 
 export const RegistrationListSkeleton: React.FC = () => (
-  <div className="h-full flex flex-col" aria-busy="true">
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
+  <div className="page h-full flex flex-col gap-3" aria-busy="true">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="panel px-3 py-2">
           <div className="skeleton h-2.5 w-16 rounded mb-1.5" />
@@ -14,14 +14,14 @@ export const RegistrationListSkeleton: React.FC = () => (
         </div>
       ))}
     </div>
-    <div className="toolbar">
+    <div className="toolbar border rounded-card">
       <div className="skeleton h-7 w-48 rounded" />
       <div className="skeleton h-7 w-36 rounded" />
       <div className="skeleton h-7 w-32 rounded" />
       <div className="skeleton h-7 w-20 rounded ml-2" />
       <div className="skeleton h-7 w-28 rounded" />
     </div>
-    <div className="flex-1 overflow-hidden p-3 space-y-2">
+    <div className="panel flex-1 overflow-hidden p-3 space-y-2">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="skeleton h-8 rounded" />
       ))}
@@ -53,7 +53,7 @@ export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ row
   if (stats.all.count === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       <div className="panel px-3 py-2">
         <div className="text-xs font-medium text-gray-600">Inscriptions</div>
         <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{stats.all.count}</div>
@@ -111,7 +111,7 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
         <div className="flex items-start gap-2 mb-2">
           <span className="h-3 w-3 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: a.color }} aria-hidden="true" />
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700">{a.name}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-brand-700">{a.name}</h3>
             {isArchived && (
               <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-gray-200 text-xs font-semibold text-ink-soft">Archivée</span>
             )}
@@ -129,7 +129,7 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
   };
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="page">
       <div className="mb-4">
         <h2 className="text-base font-semibold text-ink mb-1">Sélectionnez une liste à consulter</h2>
         <p className="text-sm text-ink-muted">
@@ -140,12 +140,12 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
         <button
           type="button"
           onClick={() => onSelect('')}
-          className="panel p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all duration-100 group border-l-2 border-l-blue-400"
+          className="panel p-4 text-left hover:border-brand-400 hover:shadow-sm transition-all duration-100 group border-l-2 border-l-brand-400"
         >
           <div className="flex items-start gap-2 mb-2">
-            <Layers className="h-3.5 w-3.5 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Layers className="h-3.5 w-3.5 text-brand-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700">Toutes les inscriptions</h3>
+              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-brand-700">Toutes les inscriptions</h3>
               <p className="text-xs text-gray-600 mt-0.5">Vue globale, toutes activités confondues</p>
             </div>
           </div>

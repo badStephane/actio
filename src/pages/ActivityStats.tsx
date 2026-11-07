@@ -27,7 +27,7 @@ const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) =
 );
 
 const StatsSkeleton: React.FC = () => (
-  <div className="p-6 max-w-5xl" aria-busy="true">
+  <div className="page" aria-busy="true">
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="panel p-4">
@@ -148,7 +148,7 @@ const ActivityStats: React.FC = () => {
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <div className="page">
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <button
           type="button"

@@ -100,7 +100,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
               {isError ? (
                 <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
               ) : (
-                <ArrowDownCircle className="h-4 w-4 text-blue-600 flex-shrink-0" aria-hidden="true" />
+                <ArrowDownCircle className="h-4 w-4 text-brand-600 flex-shrink-0" aria-hidden="true" />
               )}
               <h3 className="text-sm font-semibold text-gray-800 truncate">
                 {installPhase === 'none' && `Mise à jour ${update?.version ?? ''} disponible`}
@@ -129,7 +129,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
                 </p>
                 {update.body && (
                   <details className="mb-3">
-                    <summary className="text-xs text-blue-700 cursor-pointer hover:underline">
+                    <summary className="text-xs text-brand-700 cursor-pointer hover:underline">
                       Voir les notes de version
                     </summary>
                     <pre className="text-xs text-gray-600 mt-2 whitespace-pre-wrap max-h-32 overflow-auto">
@@ -152,7 +152,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
             {installPhase === 'downloading' && (
               <>
                 <div className="h-2 bg-gray-200 rounded overflow-hidden mb-2" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-                  <div className="h-full bg-blue-500 transition-all duration-150" style={{ width: `${percent}%` }} />
+                  <div className="h-full bg-brand-600 transition-all duration-150" style={{ width: `${percent}%` }} />
                 </div>
                 <p className="text-xs text-gray-600 tabular-nums">
                   {progress.total

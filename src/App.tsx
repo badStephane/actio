@@ -17,18 +17,23 @@ import RecoveryCodeModal from './components/RecoveryCodeModal';
 import PreferencesModal from './components/PreferencesModal';
 import UpdateChecker from './components/UpdateChecker';
 import DemoBanner from './components/DemoBanner';
+import { DEMO_MODE } from './utils/demo';
 import GlobalShortcuts from './components/GlobalShortcuts';
 import { NEW_REGISTRATION_SHORTCUT_LABEL } from './components/shortcuts';
 
+/*
+ * 3.1 Sidebar marine du logo (brand-900). Ratios calculés : slate-300 sur marine 9,6:1 ; texte blanc
+ * sur l'entrée active (blanc 10 %) 10,6:1 ; filet brand-400 sur l'entrée active 3,75:1.
+ */
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-2 px-3 py-2.5 min-h-[44px] rounded text-sm transition-colors duration-100 ${
+  `flex items-center gap-2 pl-2.5 pr-2 py-2.5 min-h-[44px] rounded-control text-sm text-left transition-colors duration-fast border-l-[3px] ${
     isActive
-      ? 'bg-gray-700/60 text-white font-medium border-l-2 border-blue-400 -ml-px'
-      : 'text-gray-300 hover:bg-gray-700/40 hover:text-white border-l-2 border-transparent -ml-px'
+      ? 'bg-white/10 text-white font-semibold border-brand-400'
+      : 'text-slate-300 hover:bg-white/5 hover:text-white border-transparent'
   }`;
 
 const accountActionClass =
-  'w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] rounded text-sm text-gray-300 hover:bg-gray-700/40 hover:text-white transition-colors';
+  'w-full flex items-center gap-2 pl-2.5 pr-2 py-2.5 min-h-[44px] rounded-control text-sm text-left text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-fast border-l-[3px] border-transparent';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Tableau de bord',
@@ -47,11 +52,13 @@ function PageHeader() {
   else if (path.startsWith('/activities/') && path.endsWith('/stats')) title = '';
   else title = PAGE_TITLES[path] || '';
 
-  if (!title) return null;
+  if (!title && !DEMO_MODE) return null;
 
+  // 3.2 : même conteneur que les pages (bord gauche à 232 px) ; 3.4 : badge démo à droite.
   return (
-    <div className="px-6 pt-5 short:pt-3 pb-0">
-      <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
+    <div className="w-full max-w-6xl px-6 pt-5 short:pt-3 pb-0 flex items-center justify-between gap-4">
+      {title ? <h1 className="text-xl font-semibold text-ink">{title}</h1> : <span />}
+      <DemoBanner />
     </div>
   );
 }
@@ -104,20 +111,20 @@ function AppShell() {
 
           {/* Sidebar */}
           <aside className={`on-dark
-            fixed inset-y-0 left-0 z-50 w-52 bg-gray-900 flex flex-col border-r border-gray-800
+            fixed inset-y-0 left-0 z-50 w-52 bg-brand-900 flex flex-col border-r border-white/10
             transform transition-transform duration-200 ease-out
             lg:relative lg:translate-x-0 lg:z-auto
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}>
             {/* App title */}
-            <div className="px-4 py-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src="/logo-mark.svg" alt="Actio" className="h-6 w-6 rounded" />
                 <p className="text-sm font-semibold text-white tracking-tight">Actio</p>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden text-gray-300 hover:text-white"
+                className="lg:hidden text-slate-300 hover:text-white"
                 aria-label="Fermer le menu"
               >
                 <X className="h-5 w-5" />
@@ -138,7 +145,7 @@ function AppShell() {
               >
                 <PlusCircle className="h-4 w-4" aria-hidden="true" />
                 Nouvelle inscription
-                <kbd className="kbd ml-auto border-gray-500 text-gray-300" aria-hidden="true">
+                <kbd className="kbd ml-auto border-slate-400 text-slate-300" aria-hidden="true">
                   {NEW_REGISTRATION_SHORTCUT_LABEL}
                 </kbd>
               </NavLink>
@@ -157,7 +164,7 @@ function AppShell() {
             </nav>
 
             {/* Account actions */}
-            <div className="border-t border-gray-800 px-2 py-2 space-y-0.5">
+            <div className="border-t border-white/10 px-2 py-2 space-y-0.5">
               <button onClick={() => setChangePasswordOpen(true)} className={accountActionClass}>
                 <KeyRound className="h-4 w-4" />
                 Mot de passe
@@ -177,15 +184,15 @@ function AppShell() {
             </div>
 
             {/* Version footer */}
-            <div className="px-4 py-3 border-t border-gray-800">
-              <p className="text-xs text-gray-400">
+            <div className="px-4 py-3 border-t border-white/10">
+              <p className="text-xs text-slate-400">
                 Actio{version ? ` v${version}` : ''}
               </p>
             </div>
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 overflow-auto bg-gray-100 flex flex-col min-w-0">
+          <main className="flex-1 overflow-auto bg-surface-app flex flex-col min-w-0">
             {/* Mobile top bar */}
             <div className="lg:hidden flex items-center gap-3 px-4 py-3 short:py-2 border-b border-gray-200 bg-white">
               <button
@@ -224,7 +231,6 @@ function AppShell() {
           onClose={() => setPreferencesOpen(false)}
         />
 
-        <DemoBanner />
       </UpdateChecker>
     </Router>
   );

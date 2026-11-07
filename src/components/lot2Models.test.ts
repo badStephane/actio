@@ -139,3 +139,13 @@ describe('mémoire de la Liste (U14)', () => {
     expect(applyFilters(rows, { ...f, search: 'dio' }, null, 'asc').map(r => r.id)).toEqual(['r1']);
   });
 });
+
+describe('libellé de la barre d’activité (Lot 3, a)', () => {
+  it('« Activité en cours » seulement aujourd’hui ou à venir ; terminée : « Activité suivie » et pastille neutre', async () => {
+    const { activityHeading } = await import('./currentActivity');
+    expect(activityHeading({ kind: 'upcoming', days: 3 })).toEqual({ label: 'Activité en cours', isNeutralDot: false });
+    expect(activityHeading({ kind: 'today' })).toEqual({ label: 'Activité en cours', isNeutralDot: false });
+    expect(activityHeading({ kind: 'past', eventDate: '2026-08-03' })).toEqual({ label: 'Activité suivie', isNeutralDot: true });
+    expect(activityHeading({ kind: 'undated' })).toEqual({ label: 'Activité suivie', isNeutralDot: false });
+  });
+});

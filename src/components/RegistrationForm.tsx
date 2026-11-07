@@ -290,7 +290,7 @@ const RegistrationForm: React.FC = () => {
   const isSubmitDisabled = isSubmitting || activitiesState !== 'ready';
 
   return (
-    <div className="px-6 py-5 short:py-3">
+    <div className="page short:py-3">
       <div className="flex flex-col xl:flex-row xl:items-start gap-6">
         <form onSubmit={handleSubmit} className="panel rounded-card shadow-card w-full max-w-[45rem]" noValidate>
           <ActivityBar

@@ -42,7 +42,7 @@ export const exportToExcel = (
     'Adresse': safeCell(reg.address),
     "Date d'inscription": reg.registrationDate,
     'Montant (F CFA)': reg.amount,
-    'Type de paiement': PAYMENT_LABEL[reg.paymentType],
+    'Mode de paiement': PAYMENT_LABEL[reg.paymentType],
     'Date de création': localDateTime(reg.createdAt),
   }));
 

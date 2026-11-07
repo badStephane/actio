@@ -156,7 +156,7 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
       <div className="panel shadow-xl max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <LifeBuoy className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <LifeBuoy className="h-4 w-4 text-brand-600" aria-hidden="true" />
             <h3 id="recovery-unlock-title" className="text-sm font-semibold text-gray-800">
               {STEP_TITLE[step]}
             </h3>

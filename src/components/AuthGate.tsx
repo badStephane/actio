@@ -173,7 +173,7 @@ const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
   if (phase === 'loading' && !hasUnlockedOnce) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-100" aria-busy="true">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent" />
         <span className="sr-only">Chargement...</span>
       </div>
     );

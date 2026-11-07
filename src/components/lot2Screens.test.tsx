@@ -51,6 +51,9 @@ describe('Accueil (2.1)', () => {
     expect(await screen.findByText('Terminée le 3 août 2020')).toBeTruthy();
     expect(screen.queryByText(/Il y a/)).toBeNull();
     expect(screen.queryByText(/Temps restant/)).toBeNull();
+    // Lot 3, a) : plus de « Activité en cours » à côté de « Terminée le … ».
+    expect(screen.getByText('Activité suivie')).toBeTruthy();
+    expect(screen.queryByText('Activité en cours')).toBeNull();
     expect(screen.getByText('Moyenne par inscription : 2 500 F', { normalizer: s => s })).toBeTruthy();
   });
 

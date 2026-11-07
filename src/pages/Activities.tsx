@@ -154,7 +154,7 @@ const Activities: React.FC = () => {
   );
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="page">
       <div className="flex items-center justify-end mb-4">
         <button onClick={handleNew} className="btn btn-primary">
           <Plus className="h-3.5 w-3.5" />
