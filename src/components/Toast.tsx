@@ -35,6 +35,7 @@ const Toast: React.FC<ToastProps> = ({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- montage avant l'animation d'entrée, refonte notée hors 2.2.0
       setRendered(true);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
       return;

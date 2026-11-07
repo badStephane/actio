@@ -34,6 +34,7 @@ const ActivityFormModal: React.FC<ActivityFormModalProps> = ({ open, activity, o
   useEffect(() => {
     if (!open) return;
     if (activity) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation de la modale à chaque ouverture, refonte notée hors 2.2.0
       setName(activity.name);
       setColor(activity.color);
       setEventDate(activity.eventDate ?? '');

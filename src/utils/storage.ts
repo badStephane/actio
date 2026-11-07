@@ -224,7 +224,8 @@ export const addRegistrationsBulk = async (
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Les ${summary.count} inscriptions ont bien été importées, mais l'historique n'a pas pu être écrit (${msg}). Ne relancez pas l'import.`
+      `Les ${summary.count} inscriptions ont bien été importées, mais l'historique n'a pas pu être écrit (${msg}). Ne relancez pas l'import.`,
+      { cause: error }
     );
   }
   return inserted;

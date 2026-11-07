@@ -54,6 +54,7 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation de la modale à chaque ouverture, refonte notée hors 2.2.0
     setStep('code');
     setCode('');
     setPwd1('');

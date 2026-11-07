@@ -49,7 +49,7 @@ const PAGE_TITLES: Record<string, string> = {
 function PageHeader() {
   const location = useLocation();
   const path = location.pathname;
-  let title = '';
+  let title: string;
   if (path.startsWith('/edit/')) title = "Modifier l'inscription";
   else if (path.startsWith('/activities/') && path.endsWith('/stats')) title = '';
   else title = PAGE_TITLES[path] || '';

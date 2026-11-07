@@ -46,6 +46,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   useEffect(() => {
     if (open) {
       returnFocusRef.current = document.activeElement as HTMLElement | null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- montage avant l'animation d'entrée, refonte notée hors 2.2.0
       setTyped('');
       setRendered(true);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));

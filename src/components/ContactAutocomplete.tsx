@@ -40,6 +40,7 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
 
   useEffect(() => {
     if (!enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- vide les suggestions quand la recherche ne s'applique pas, refonte notée hors 2.2.0
       setSuggestions([]);
       setOpen(false);
       return;

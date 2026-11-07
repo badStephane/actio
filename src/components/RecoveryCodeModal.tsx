@@ -40,6 +40,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation de la modale à chaque ouverture, refonte notée hors 2.2.0
     setNewCode(null);
     setAcknowledged(false);
     setError(null);

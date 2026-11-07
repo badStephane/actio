@@ -80,6 +80,7 @@ const Home: React.FC = () => {
   }, [setCurrentActivityId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void load();
   }, [load]);
 
