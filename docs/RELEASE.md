@@ -9,7 +9,7 @@ Chaîne : tag `v*` → `CI et release` (porte qualité, garde-fous migrations et
 4. Échec CI : rien n'est publié. Corriger, supprimer le brouillon éventuel (onglet Releases), taguer `vX.Y.(Z+1)`.
 
 ## 2. Vérifier le brouillon
-5. Onglet Releases, brouillon `vX.Y.Z` : 6 fichiers (`_x64-setup.exe` + `.sig`, `.dmg`, `.app.tar.gz` + `.sig`, `latest.json`), notes générées lisibles.
+5. Onglet Releases, brouillon `vX.Y.Z` : 6 fichiers (`Actio_X.Y.Z_x64-setup.exe` + `.sig`, `Actio_X.Y.Z_universal.dmg`, `Actio.app.tar.gz` + `.sig`, `latest.json`), notes générées lisibles. Depuis 2.1.0 l'app s'installe dans `%LOCALAPPDATA%\Actio\` ; les données restent dans `%APPDATA%\com.badstephane.gestion-inscription\`.
 6. `gh release download vX.Y.Z -p latest.json -O - | jq '.version, (.platforms | keys)'` : la version et 3 plateformes.
 
 ## 3. Smoke test Windows (setup.exe du brouillon ; parcours de `docs/squad/07-qa.md` §5)
@@ -31,8 +31,11 @@ Première installation (pas d'Authenticode, D11) : « Windows a protégé votre 
 | 11 | Export Excel (sous CSP stricte) | Fichier téléchargé, ouvert dans Excel, dates ISO, réimportable sans erreur |
 | 12 | « Tout effacer » depuis l'écran verrouillé | Exige `EFFACER` ; `avant-reinitialisation_*.db` créé ; redémarrage sur l'écran de création ; Historique = 1 événement `reset` |
 | 13 | Après publication (§4, étape 8), poste pilote 2.0.2 mis à jour par l'updater | Mise à jour proposée et installée, base ouverte, `%LOCALAPPDATA%\com.badstephane.gestion-inscription\logs\actio.log` présent |
+| 14 | **Renommage**, setup par-dessus, en mode graphique (poste 2.0.2 rempli, app ouverte) | Message « Gestion des Inscriptions est ouvert… » puis fermeture ; Paramètres > Applications installées : une seule entrée « Actio » ; menu Démarrer : « Actio » seul ; `%LOCALAPPDATA%\Gestion des Inscriptions\` absent, `%LOCALAPPDATA%\Actio\app.exe` présent ; données et nombre d'inscriptions identiques |
+| 15 | **Renommage en mode updater** (autre poste 2.0.2 avec raccourci Bureau, app ouverte) : `Actio_X.Y.Z_x64-setup.exe /P /R /UPDATE`, arguments exacts de l'updater de la 2.0.2 | Ancienne app fermée sans question, Actio relancé ; mêmes contrôles que le 14 ; raccourcis menu Démarrer et Bureau « Actio » à la place des anciens |
+| 16 | Désinstaller Actio, case « Delete the application data » **non cochée** (défaut, installeur en anglais) | Entrée et raccourcis disparus ; `%APPDATA%\com.badstephane.gestion-inscription\` (base, `backups\`) intact ; réinstaller le setup : données retrouvées |
 
-Un seul KO = NO-GO : ne pas publier (ou, pour le 13, appliquer le §5), ouvrir un ticket, nouveau tag après correctif.
+Un seul KO = NO-GO : ne pas publier (ou, pour le 13, appliquer le §5), ouvrir un ticket, nouveau tag après correctif. Une pre-release (`-rc.N`) n'est pas vue par l'updater : le poste pilote la reçoit par le setup.exe (parcours 14 et 15), le 13 se fait sur la version stable.
 
 ## 4. Publier
 7. `gh workflow run publish-release.yml -f tag=vX.Y.Z` (ou Actions > Publier une release). Le job revalide le brouillon, publie (`--latest`, ou pre-release si `-`) et vérifie que les deux endpoints updater servent `X.Y.Z`.
@@ -47,7 +50,7 @@ L'updater ne rétrograde jamais, et une base migrée ne s'ouvre plus avec une ve
     2. Ouvrir `%APPDATA%\com.badstephane.gestion-inscription\` dans l'Explorateur.
     3. Créer un dossier `avant-rollback` et y **déplacer** `inscriptions.db` et tout `inscriptions.db-journal`, `-wal`, `-shm` (un journal resté en place corromprait la base restaurée).
     4. Dans `backups\`, prendre en priorité `pre-upgrade_v<précédente>_to_vX.Y.Z_*.db` (`pre-upgrade_vprecedente_to_v2.1.0_*.db` pour le passage depuis 2.0.2) : copie hors rotation faite juste avant les migrations de X.Y.Z, au schéma précédent avec toutes les données. Repli seulement si elle manque : le plus ancien `auto_*_vX.Y.Z.db`, sinon le plus récent `auto_*_v<précédente>.db` (perte de la dernière session).
-    5. Installer le setup.exe de la version précédente (page de sa release) par-dessus.
+    5. Désinstaller Actio (case « Delete the application data » non cochée), puis installer le setup.exe de la version précédente (page de sa release). Depuis 2.1.0 le nom a changé : sans cette désinstallation, 2.0.2 s'installerait à côté d'Actio.
     6. Copier la sauvegarde choisie dans `%APPDATA%\com.badstephane.gestion-inscription\` et la renommer `inscriptions.db`.
-    7. Lancer Actio, comparer le nombre d'inscriptions avec la dernière liste connue. Logs : `%LOCALAPPDATA%\com.badstephane.gestion-inscription\logs\actio.log`.
+    7. Lancer l'app, comparer le nombre d'inscriptions avec la dernière liste connue. Logs : `%LOCALAPPDATA%\com.badstephane.gestion-inscription\logs\actio.log`.
 12. **Clé de signature exposée** : nouvelle paire, release signée avec l'ancienne clé portant la nouvelle `pubkey`, puis rotation des secrets.

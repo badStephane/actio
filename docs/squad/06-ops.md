@@ -18,7 +18,7 @@ Date : 2026-11-07. Branche : `audit/pre-prod` @ e0eb472 (fusion v2.0.2, migratio
 | M2 | `latest.json` construit avec `jq`, URLs reconstruites (`/releases/download/<tag>/<nom>`), échec si un fichier, une URL ou une signature manque ; noms d'assets présents dans le brouillon vérifiés avant et au moment de publier | `build.yml`, `publish-release.yml` |
 | M3 | Job `checks` bloquant sur PR, push `main` et tags : `npm ci`, lint, `tsc --noEmit`, `npm test --if-present`, `vite build`, `cargo test --locked` (dépendances Tauri 2 installées, cache cargo) | `build.yml` |
 | M4 | Actions épinglées par SHA (version en commentaire) ; secrets de signature visibles **uniquement** par l'étape `Build Tauri` (`env:`), clé supprimée par `trap` ; `contents: read` par défaut ; jobs de build **sans** jeton d'écriture ; `write` seulement pour `draft-release` et `publish` ; `persist-credentials: false` | `build.yml`, `publish-release.yml` |
-| M4 | Dependabot hebdomadaire pour `github-actions` (met à jour SHA et commentaire) et `npm` (mineures groupées) | `.github/dependabot.yml` |
+| M4 | Dependabot : `github-actions` hebdomadaire (SHA et commentaire) ; `npm` mensuel, 2 groupes (`npm-mineures`, `npm-majeures`), au plus 2 PR par mois filtrées par la porte qualité. Les majeures (React 19, Vite 8, jsdom 30, lucide 1.x) sont à planifier hors release (chantier 2.2.0) | `.github/dependabot.yml` |
 | M7 (court terme) | Procédure SmartScreen et quarantaine Defender en texte | `docs/RELEASE.md` §3 |
 | m1 (CI) | Globs MSI retirés ; collecte stricte : exactement 1 fichier par motif, filtré sur la version | `build.yml` |
 | m3 | Plus de réécriture de version en CI : `tauri.conf.json` et `package.json` doivent égaler le tag, tag > release publiée (semver, pre-release comprise) | `scripts/check-release-version.mjs` |
@@ -69,6 +69,42 @@ Hors de mon couloir, traités par le Back : B2, M6, m1 (`targets`), m2. Reporté
 RPO poste : depuis le dernier lancement de l'app (copie au démarrage, Back) ; perte du poste non couverte (D11).
 Alerte : l'échec d'un workflow planifié notifie le propriétaire par e-mail ; deux échecs consécutifs = appliquer le
 runbook. Attention : GitHub désactive les workflows planifiés après 60 jours sans activité sur un dépôt public.
+
+## Renommage Actio (2.1.0-rc.2)
+
+`productName` passe de « Gestion des Inscriptions » à « Actio ». `identifier` ne change pas, donc les données ne bougent pas :
+`%APPDATA%\com.badstephane.gestion-inscription\` (base, `backups\`), `%LOCALAPPDATA%\com.badstephane.gestion-inscription\` (logs, WebView2).
+Sources : dépôt tauri-apps/tauri, `crates/tauri-bundler/src/bundle/windows/nsis/`, lues avec `gh api`.
+
+**Q1, template de la rc.2.** @tauri-apps/cli 2.12.4 (package-lock), tag `@tauri-apps/cli-v2.12.4` = commit 993038c, crate tauri-bundler du workspace.
+- Mode `currentUser` par défaut (`mod.rs:359`). Dossier : `$LOCALAPPDATA\${PRODUCTNAME}` (`installer.nsi:547`), sauf si un dossier est mémorisé sous
+  `HKCU\Software\${MANUFACTURER}\${PRODUCTNAME}` (`:69`, `:727`). MANUFACTURER = `badstephane`, 2e segment de l'identifier (`mod.rs:286`).
+- Clé de désinstallation : `HKCU\...\Uninstall\${PRODUCTNAME}` (`:67`). Raccourcis : `$SMPROGRAMS\${PRODUCTNAME}.lnk` et `$DESKTOP\${PRODUCTNAME}.lnk` (`:996`, `:1020`).
+- Exe : nom du paquet Cargo, `app.exe` (`rust.rs:944`, aucun `mainBinaryName`). Il est identique en 2.0.2 et en 2.1.0.
+- Hooks : `bundle.windows.nsis.installerHooks`, inclus en tête du script (`:35-36`). Macros `NSIS_HOOK_PREINSTALL` (`:686`, avant copie, registre et
+  raccourcis), `NSIS_HOOK_POSTINSTALL` (`:778`), `NSIS_HOOK_PREUNINSTALL`, `NSIS_HOOK_POSTUNINSTALL`.
+- Changement par rapport à 2.11 : l'app ouverte est détectée par son **chemin** `$INSTDIR\app.exe` via Restart Manager (`:690`). L'ancienne app,
+  lancée depuis `...\Gestion des Inscriptions\`, n'est donc pas fermée par le template : c'est le hook qui la ferme.
+- Conséquence sans hook : nouveau dossier, nouvelle clé, nouveaux raccourcis, donc deux applications installées.
+
+**Q2, désinstalleur de la 2.0.2.** `git show v2.0.2:package-lock.json` donne @tauri-apps/cli 2.11.0, soit le commit e60834f (tauri-bundler 2.9.0).
+- Les données ne sont supprimées que si `$DeleteAppDataCheckboxState = 1` **et** `$UpdateMode <> 1` (`installer.nsi:864-865`, puis `RmDir /r` `:876-877`).
+- La case n'est lue qu'en quittant la page de confirmation (`un.ConfirmLeave`, `:452-455`), et cette page n'existe pas en mode `/S`.
+  `/UPDATE` met `$UpdateMode` à 1 (`:764-767`). Arguments retenus : `/S /UPDATE _?=<ancien dossier>`. Ils donnent deux conditions fausses
+  indépendantes, et `_?=` fait attendre la fin du désinstalleur. C'est le même appel que celui du template lors d'une réinstallation (`:350-353`).
+- Ce que l'ancien désinstalleur fait dans ce mode : suppression de `app.exe` (`:780`) et de la clé `Uninstall` (`:851`). Il garde ses raccourcis
+  (`:817`, `UpdateMode`). Le hook supprime donc lui-même les raccourcis, `uninstall.exe` et le dossier (`RMDir` sans `/r`), comme le fait
+  le template 2.12.4 (`:401-409`).
+
+**Q3, updater.** C'est le 2.0.2 installé qui lance la mise à jour : tauri-plugin-updater 2.10.1, mode `Passive` par défaut, avec
+`/P /R /UPDATE /ARGS` (`config.rs:41`, `updater.rs:808-815`) via ShellExecute, puis `exit(0)`. Pour les versions suivantes,
+2.14.1 passe `/P /UPDATE [/R /ARGS]` (`updater.rs:1058-1077`). En `/UPDATE`, le template ne crée aucun raccourci
+(`installer.nsi:982-988`) : le hook recrée « Actio » (menu Démarrer, et Bureau s'il existait) après une migration.
+
+**Hook** `src-tauri/windows/hooks.nsh`. Il ne fait rien sans clé `Uninstall\Gestion des Inscriptions`. Sinon : fermeture de l'ancienne app
+(question en mode graphique), désinstalleur `/S /UPDATE`, filet de sécurité sur les fichiers connus, raccourcis seulement s'ils visent l'ancien exe,
+clés HKCU, puis recréation des raccourcis. Aucune commande ne vise `$APPDATA` ni `$LOCALAPPDATA\<identifier>`. Smoke : RELEASE.md, parcours 14 à 16.
+Limite : MSI 2.0.2 (0 téléchargement) et installation `perMachine` non gérés.
 
 ## Risques ouverts
 
