@@ -120,9 +120,9 @@ Le front 2.2.0 cible `chrome111` (Tailwind 4, Vite 8) : sous Chromium 99, plus a
 - Accès depuis un hook : oui. Le hook est inclus avant les `!define` (`:35-36`), mais les macros sont développées à leur insertion
   (`:686`), donc `${WEBVIEW2INSTALLERPATH}` y est disponible. `File` y extrait le **même** fichier source que la Section WebView2.
 - Correctif `hooks.nsh`, `ACTIO_ENSURE_WEBVIEW2`, en tête de PREINSTALL. Si la plus haute `pv` est absente ou < 111.0.0.0, il relance l'installeur
-  embarqué en `/silent /install`, puis **relit** `pv` (le code retour n'est pas utilisé). En cas d'échec :
-  - mode graphique : Oui/Non, « Non » annule avant toute migration et la version en place reste ;
-  - `/P` et `/S` (updater) : journalisation dans `%TEMP%\Actio-installation.log`, puis poursuite.
+  embarqué en `/silent /install`, puis **relit** `pv` (le code retour n'est pas utilisé). En cas d'échec (D30), annulation en PREINSTALL, avant toute
+  migration ou copie, avec code de sortie 2 : `/P` message puis Abort ; `/S` journal `%TEMP%\Actio-installation.log` puis Abort ;
+  mode graphique question Oui/Non (« Non » = Abort). La 2.1 reste installée et utilisable (base migrée seulement au 1er lancement).
   Idempotent, aucune donnée touchée.
 - Build de vérification (run 42386164888) : makensis compile le hook. Setup `Actio_2.2.0-rc.1_x64-setup.exe` de 222 534 597 octets, contre 222 521 510 pour la rc.2 (+13 Ko) : NSIS dédoublonne le second `File`, et l'installeur n'est pas embarqué deux fois.
 - Hypothèses à valider par S1 : l'installeur autonome met bien à niveau un runtime plus ancien ; lancé sans élévation, il peut s'installer

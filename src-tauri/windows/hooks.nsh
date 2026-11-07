@@ -28,7 +28,9 @@
 ; il ne met jamais à niveau un runtime présent mais ancien (fréquent sur un poste hors ligne).
 ; ACTIO_ENSURE_WEBVIEW2 relance donc l'installeur hors ligne déjà embarqué (${WEBVIEW2INSTALLERPATH},
 ; même fichier que la Section WebView2) si la version lue est absente ou < 111. Succès jugé sur la
-; version relue dans le registre, pas sur le code retour. Ne touche à aucune donnée.
+; version relue dans le registre, pas sur le code retour. Échec (D30) : /S journal + Abort, /P message +
+; journal + Abort, graphique question Oui/Non (Non = Abort) ; code de sortie 2 ; journal
+; %TEMP%\Actio-installation.log. Ne touche à aucune donnée.
 
 !define ACTIO_OLD_PRODUCTNAME "Gestion des Inscriptions"
 !define ACTIO_OLD_UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${ACTIO_OLD_PRODUCTNAME}"
@@ -111,11 +113,28 @@ Var ActioWv2Version     ; plus haute version « pv » trouvée (vide si aucun ru
       !insertmacro ACTIO_WEBVIEW2_TOO_OLD
       ${If} $0 = 1
         !insertmacro ACTIO_LOG "Échec de la mise à niveau de WebView2 (code $1, version lue « $ActioWv2Version »)"
-        ${IfNot} ${Silent}
-        ${AndIf} $PassiveMode <> 1
-          MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "Le composant Microsoft Edge WebView2 de ce poste est trop ancien (version « $ActioWv2Version », minimum 111) et sa mise à niveau a échoué.$\r$\n$\r$\nSans lui, ${PRODUCTNAME} s'affichera sans mise en forme. Solution : connecter le poste à Internet et lancer Windows Update, ou installer « Microsoft Edge WebView2 Runtime » (version hors ligne) depuis une clé USB, puis relancer cette installation.$\r$\n$\r$\nOui : installer quand même. Non : annuler (la version actuelle reste en place)." IDYES actio_wv2_continue
+        ; Décision D30 : l'échec annule l'installation, en PREINSTALL, avant toute migration et toute
+        ; copie ; la base n'est migrée qu'au premier lancement de la nouvelle version, donc la version
+        ; en place reste intacte et utilisable. Code de sortie 2 (non nul) dès qu'on annule.
+        ${If} ${Silent}
+          ; /S strict : aucune interface, journal seulement.
+          !insertmacro ACTIO_LOG "Installation annulée (/S) : WebView2 < ${ACTIO_WEBVIEW2_MIN}, version en place conservée"
+          SetErrorLevel 2
+          Abort
+        ${ElseIf} $PassiveMode = 1
+          ; /P (updater) : message, journal, annulation.
+          MessageBox MB_OK|MB_ICONEXCLAMATION "Actio n'a pas pu mettre à jour le composant d'affichage Windows (WebView2, version 111 minimum requise). La version actuelle d'Actio reste installée et utilisable. Connectez ce poste à internet une fois, ou contactez le support, puis relancez la mise à jour."
+          !insertmacro ACTIO_LOG "Installation annulée (/P) : WebView2 < ${ACTIO_WEBVIEW2_MIN}, version en place conservée"
+          SetErrorLevel 2
+          Abort
+        ${Else}
+          ; Mode graphique : question, « Non » annule.
+          MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "Le composant Microsoft Edge WebView2 de ce poste est trop ancien (version « $ActioWv2Version », minimum 111) et sa mise à niveau a échoué.$\r$\n$\r$\nSans lui, ${PRODUCTNAME} s'affichera sans mise en forme. Solution : connecter le poste à internet une fois, ou installer « Microsoft Edge WebView2 Runtime » (version hors ligne) depuis une clé USB, puis relancer cette installation.$\r$\n$\r$\nOui : installer quand même. Non : annuler (la version actuelle reste installée et utilisable)." IDYES actio_wv2_continue
+          !insertmacro ACTIO_LOG "Installation annulée (mode graphique) : WebView2 < ${ACTIO_WEBVIEW2_MIN}, version en place conservée"
+          SetErrorLevel 2
           Abort
           actio_wv2_continue:
+          !insertmacro ACTIO_LOG "WebView2 < ${ACTIO_WEBVIEW2_MIN} : installation poursuivie à la demande de l'utilisateur"
         ${EndIf}
       ${Else}
         !insertmacro ACTIO_LOG "WebView2 mis à niveau : $ActioWv2Version"
@@ -125,7 +144,7 @@ Var ActioWv2Version     ; plus haute version « pv » trouvée (vide si aucun ru
 !macroend
 
 !macro NSIS_HOOK_PREINSTALL
-  ; WebView2 d'abord : en mode graphique, un refus annule tout AVANT de retirer l'ancienne app.
+  ; WebView2 d'abord : un échec annule tout AVANT de retirer l'ancienne app.
   !insertmacro ACTIO_ENSURE_WEBVIEW2
   StrCpy $ActioMigrated 0
   StrCpy $ActioHadDesktopLnk 0
