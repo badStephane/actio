@@ -75,8 +75,8 @@ Bruit mesuré entre deux captures du même build : <= 0,01 %. « Visibles » = �
 | Écrans bas 900×600 (accueil, saisie avec focus et survol, liste, activités) | 0,13 à 0,78 % / <= 0,10 % | - |
 
 Écarts > 0,5 % : **1 niveau** sur 255, invisible ; les opacités (`bg-white/10` de la sidebar, filets) passent par `color-mix()` en v4 :
-(48,64,92) devient (48,63,91), la valeur exacte du mélange. Écarts visibles (<= 0,1 %) : tracés lucide 1.x retouchés au sous-pixel
-(mêmes formes, vérifié à la loupe). Aucun décalage de mise en page. Statistiques mesurées sur `stats-rendu` (animation recharts terminée).
+(48,64,92) devient (48,63,91), la valeur exacte du mélange. Écarts visibles (<= 0,1 %) : glyphes lucide 1.x redessinés par lucide
+(`Coins` inversé ; `House`, `CircleCheckBig`, `ChartColumn`, `CircleCheck`, `CalendarDays` retouchés ; même sens, cf. 07-qa-deps-2.2.0.md). Aucun décalage de mise en page. Statistiques mesurées sur `stats-rendu` (animation recharts terminée).
 
 ## Risques
 | Risque | Impact | Rôle |
