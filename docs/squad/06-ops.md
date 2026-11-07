@@ -106,6 +106,30 @@ Sources : dépôt tauri-apps/tauri, `crates/tauri-bundler/src/bundle/windows/nsi
 clés HKCU, puis recréation des raccourcis. Aucune commande ne vise `$APPDATA` ni `$LOCALAPPDATA\<identifier>`. Smoke : RELEASE.md, parcours 14 à 16.
 Limite : MSI 2.0.2 (0 téléchargement) et installation `perMachine` non gérés.
 
+## WebView2 minimum (2.2.0, risque R1)
+
+Le front 2.2.0 cible `chrome111` (Tailwind 4, Vite 8) : sous Chromium 99, plus aucun style. Sources : template NSIS de la CLI 2.12.4 (commit 993038c).
+- Embarquement : `webviewInstallMode: offlineInstaller`. L'installeur autonome est téléchargé au build (`mod.rs:618-621`) et défini dans
+  `WEBVIEW2INSTALLERPATH` (`installer.nsi:65`). La Section WebView2 l'extrait dans `%TEMP%` par `File` (`:630-636`) et le lance
+  en `/silent /install` (`:643`).
+- Limites du template : il installe seulement si `pv` est **absent** (`:602`), jamais en `/UPDATE` (`:606`). Il ne met jamais à niveau un runtime
+  présent mais ancien. L'option native `minimumWebview2Version` (`:653-677`) passe par l'updater EdgeUpdate **en ligne**
+  (`/install appguid=…&needsadmin=true`, `:669`) : elle est inutile hors ligne.
+- Version installée : valeur `pv` sous `Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`, lue en
+  `HKLM\SOFTWARE\WOW6432Node`, `HKLM\SOFTWARE` et `HKCU\SOFTWARE` (`:593-600`).
+- Accès depuis un hook : oui. Le hook est inclus avant les `!define` (`:35-36`), mais les macros sont développées à leur insertion
+  (`:686`), donc `${WEBVIEW2INSTALLERPATH}` y est disponible. `File` y extrait le **même** fichier source que la Section WebView2.
+- Correctif `hooks.nsh`, `ACTIO_ENSURE_WEBVIEW2`, en tête de PREINSTALL. Si la plus haute `pv` est absente ou < 111.0.0.0, il relance l'installeur
+  embarqué en `/silent /install`, puis **relit** `pv` (le code retour n'est pas utilisé). En cas d'échec :
+  - mode graphique : Oui/Non, « Non » annule avant toute migration et la version en place reste ;
+  - `/P` et `/S` (updater) : journalisation dans `%TEMP%\Actio-installation.log`, puis poursuite.
+  Idempotent, aucune donnée touchée.
+- Build de vérification (run 42386164888) : makensis compile le hook. Setup `Actio_2.2.0-rc.1_x64-setup.exe` de 222 534 597 octets, contre 222 521 510 pour la rc.2 (+13 Ko) : NSIS dédoublonne le second `File`, et l'installeur n'est pas embarqué deux fois.
+- Hypothèses à valider par S1 : l'installeur autonome met bien à niveau un runtime plus ancien ; lancé sans élévation, il peut s'installer
+  pour l'utilisateur (HKCU), et le chargeur WebView2 prend alors la version la plus récente.
+- Conséquence sur M5 (D11) : un setup d'update sans WebView2 (`skip`) supprimerait ce filet. Il faut garder l'installeur embarqué tant que le parc
+  hors ligne existe.
+
 ## Risques ouverts
 
 | Risque | Impact | Rôle | Mitigation |
