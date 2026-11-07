@@ -104,6 +104,22 @@ pub fn run() {
             CREATE INDEX IF NOT EXISTS audit_events_created_at_idx ON audit_events (created_at DESC);",
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 9,
+      description: "create_contacts_directory_table",
+      sql: "CREATE TABLE IF NOT EXISTS contacts (
+              id TEXT PRIMARY KEY NOT NULL,
+              last_name TEXT NOT NULL,
+              first_name TEXT NOT NULL,
+              phone TEXT NOT NULL DEFAULT '',
+              address TEXT NOT NULL DEFAULT '',
+              source TEXT,
+              created_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS contacts_last_first_idx ON contacts (last_name, first_name);
+            CREATE INDEX IF NOT EXISTS contacts_phone_idx ON contacts (phone);",
+      kind: MigrationKind::Up,
+    },
   ];
 
   tauri::Builder::default()

@@ -278,13 +278,14 @@ const RegistrationList: React.FC = () => {
   };
 
   const stats = useMemo(() => {
-    const wave = registrations.filter(r => r.paymentType === 'wave');
-    const cash = registrations.filter(r => r.paymentType === 'cash');
-    const orange = registrations.filter(r => r.paymentType === 'orange_money');
+    const source = filteredRegistrations;
+    const wave = source.filter(r => r.paymentType === 'wave');
+    const cash = source.filter(r => r.paymentType === 'cash');
+    const orange = source.filter(r => r.paymentType === 'orange_money');
     const sum = (rs: Registration[]) => rs.reduce((acc, r) => acc + r.amount, 0);
     return {
-      total: registrations.length,
-      totalAmount: sum(registrations),
+      total: source.length,
+      totalAmount: sum(source),
       waveCount: wave.length,
       waveAmount: sum(wave),
       cashCount: cash.length,
@@ -292,7 +293,7 @@ const RegistrationList: React.FC = () => {
       orangeCount: orange.length,
       orangeAmount: sum(orange),
     };
-  }, [registrations]);
+  }, [filteredRegistrations]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRegistrations.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);

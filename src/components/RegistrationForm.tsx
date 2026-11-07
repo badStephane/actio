@@ -5,6 +5,8 @@ import { getActivities } from '../utils/activities';
 import { Activity, DEFAULT_ACTIVITY_ID, Registration } from '../types';
 import { CheckCircle, AlertCircle, Save, X } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import ContactAutocomplete from './ContactAutocomplete';
+import { Contact } from '../utils/contacts';
 
 interface FormState {
   firstName: string;
@@ -116,6 +118,35 @@ const RegistrationForm: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const setFieldValue = (name: keyof FormState, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  };
+
+  const fillFromContact = (contact: Contact) => {
+    setFormData(prev => ({
+      ...prev,
+      lastName: contact.lastName,
+      firstName: contact.firstName,
+      phone: contact.phone,
+      address: contact.address || prev.address,
+    }));
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next.lastName;
+      delete next.firstName;
+      delete next.phone;
+      if (contact.address) delete next.address;
+      return next;
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -275,13 +306,17 @@ const RegistrationForm: React.FC = () => {
                 <label htmlFor="lastName" className="block text-xs font-medium text-gray-600 mb-1">
                   Nom <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
+                <ContactAutocomplete
                   value={formData.lastName}
-                  onChange={handleChange}
-                  className={`input-field ${errors.lastName ? 'has-error' : ''}`}
+                  onChange={(v) => setFieldValue('lastName', v)}
+                  onSelect={fillFromContact}
+                  enabled={!isEditMode}
+                  inputProps={{
+                    type: 'text',
+                    id: 'lastName',
+                    name: 'lastName',
+                    className: `input-field ${errors.lastName ? 'has-error' : ''}`,
+                  }}
                 />
                 {errors.lastName && <p className="mt-0.5 text-xs text-red-500">{errors.lastName}</p>}
               </div>
@@ -289,13 +324,17 @@ const RegistrationForm: React.FC = () => {
                 <label htmlFor="firstName" className="block text-xs font-medium text-gray-600 mb-1">
                   Prenoms <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
+                <ContactAutocomplete
                   value={formData.firstName}
-                  onChange={handleChange}
-                  className={`input-field ${errors.firstName ? 'has-error' : ''}`}
+                  onChange={(v) => setFieldValue('firstName', v)}
+                  onSelect={fillFromContact}
+                  enabled={!isEditMode}
+                  inputProps={{
+                    type: 'text',
+                    id: 'firstName',
+                    name: 'firstName',
+                    className: `input-field ${errors.firstName ? 'has-error' : ''}`,
+                  }}
                 />
                 {errors.firstName && <p className="mt-0.5 text-xs text-red-500">{errors.firstName}</p>}
               </div>
@@ -306,14 +345,18 @@ const RegistrationForm: React.FC = () => {
               <label htmlFor="phone" className="block text-xs font-medium text-gray-600 mb-1">
                 Telephone <span className="text-red-500">*</span>
               </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
+              <ContactAutocomplete
                 value={formData.phone}
-                onChange={handleChange}
-                placeholder="07 07 07 07 07"
-                className={`input-field ${errors.phone ? 'has-error' : ''}`}
+                onChange={(v) => setFieldValue('phone', v)}
+                onSelect={fillFromContact}
+                enabled={!isEditMode}
+                inputProps={{
+                  type: 'tel',
+                  id: 'phone',
+                  name: 'phone',
+                  placeholder: '07 07 07 07 07',
+                  className: `input-field ${errors.phone ? 'has-error' : ''}`,
+                }}
               />
               {errors.phone && <p className="mt-0.5 text-xs text-red-500">{errors.phone}</p>}
             </div>

@@ -182,9 +182,12 @@ export const deleteRegistration = async (id: string): Promise<void> => {
   }
 };
 
+const REGISTRATION_BATCH_SIZE = 200;
+
 export const addRegistrationsBulk = async (
   registrations: Omit<Registration, 'id' | 'createdAt'>[]
 ): Promise<Registration[]> => {
+  if (registrations.length === 0) return [];
   if (DEMO_MODE) {
     const inserted = registrations.map((reg) => ({
       ...reg,
@@ -198,39 +201,54 @@ export const addRegistrationsBulk = async (
     return inserted;
   }
   const db = await getDb();
+  const now = Date.now();
   const inserted: Registration[] = [];
-  await db.execute('BEGIN');
-  try {
-    for (const reg of registrations) {
+
+  for (let start = 0; start < registrations.length; start += REGISTRATION_BATCH_SIZE) {
+    const batch = registrations.slice(start, start + REGISTRATION_BATCH_SIZE);
+    const placeholders: string[] = [];
+    const params: unknown[] = [];
+    const newRegs: Registration[] = [];
+    let p = 1;
+    for (const reg of batch) {
       const newReg: Registration = {
         ...reg,
         id: crypto.randomUUID(),
-        createdAt: Date.now(),
+        createdAt: now,
       };
-      await db.execute(
-        `INSERT INTO registrations (${COLUMNS}) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [
-          newReg.id,
-          newReg.firstName,
-          newReg.lastName,
-          newReg.phone,
-          newReg.address,
-          newReg.registrationDate,
-          newReg.paymentType,
-          newReg.amount,
-          newReg.activityId,
-          newReg.createdAt,
-        ]
+      newRegs.push(newReg);
+      placeholders.push(
+        `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++})`
       );
-      inserted.push(newReg);
+      params.push(
+        newReg.id,
+        newReg.firstName,
+        newReg.lastName,
+        newReg.phone,
+        newReg.address,
+        newReg.registrationDate,
+        newReg.paymentType,
+        newReg.amount,
+        newReg.activityId,
+        newReg.createdAt
+      );
     }
-    await db.execute('COMMIT');
-    for (const reg of inserted) {
-      await logEvent('created', 'registration', reg.id, formatRegistrationSummary(reg));
+    try {
+      await db.execute(
+        `INSERT INTO registrations (${COLUMNS}) VALUES ${placeholders.join(', ')}`,
+        params
+      );
+      inserted.push(...newRegs);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Lot ${start + 1}-${start + batch.length} — ${msg}`
+      );
     }
-    return inserted;
-  } catch (error) {
-    await db.execute('ROLLBACK');
-    throw error;
   }
+
+  for (const reg of inserted) {
+    await logEvent('created', 'registration', reg.id, formatRegistrationSummary(reg));
+  }
+  return inserted;
 };

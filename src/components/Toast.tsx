@@ -15,9 +15,10 @@ const Toast: React.FC<ToastProps> = ({
   open,
   variant,
   message,
-  duration = 3000,
+  duration,
   onClose,
 }) => {
+  const effectiveDuration = duration ?? (variant === 'error' ? 8000 : 3000);
   const [visible, setVisible] = useState(false);
   const [rendered, setRendered] = useState(false);
 
@@ -34,9 +35,9 @@ const Toast: React.FC<ToastProps> = ({
 
   useEffect(() => {
     if (!open) return;
-    const timer = setTimeout(onClose, duration);
+    const timer = setTimeout(onClose, effectiveDuration);
     return () => clearTimeout(timer);
-  }, [open, duration, onClose]);
+  }, [open, effectiveDuration, onClose]);
 
   if (!rendered) return null;
 

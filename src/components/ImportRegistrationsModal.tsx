@@ -89,7 +89,8 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
       onImported(dataList.length);
     } catch (err) {
       console.error('Error importing:', err);
-      setError("Erreur lors de l'enregistrement en base.");
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Erreur lors de l'enregistrement: ${msg}`);
       setPhase('preview');
     }
   };
