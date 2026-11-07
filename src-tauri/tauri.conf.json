@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Gestion des Inscriptions",
-  "version": "2.1.0",
+  "version": "2.1.0-rc.1",
   "identifier": "com.badstephane.gestion-inscription",
   "build": {
     "frontendDist": "../dist",
