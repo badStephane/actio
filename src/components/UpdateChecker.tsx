@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, AlertCircle, X, ArrowDownCircle } from 'lucide-react';
+import { Download, CircleExclamationPoint, X, CircleArrowDown } from 'lucide-react';
 import { check, Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { UpdateContext, UpdateCheckStatus, UpdateContextValue } from './updateContext';
@@ -47,6 +47,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void runCheck(false);
   }, [runCheck]);
 
@@ -98,9 +99,9 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
           <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
             <div className="flex items-center gap-2 min-w-0" aria-live="polite">
               {isError ? (
-                <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
+                <CircleExclamationPoint className="h-4 w-4 text-red-600 shrink-0" aria-hidden="true" />
               ) : (
-                <ArrowDownCircle className="h-4 w-4 text-brand-600 flex-shrink-0" aria-hidden="true" />
+                <CircleArrowDown className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" />
               )}
               <h3 className="text-sm font-semibold text-gray-800 truncate">
                 {installPhase === 'none' && `Mise à jour ${update?.version ?? ''} disponible`}
@@ -112,7 +113,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
             {canDismiss && (
               <button
                 onClick={() => setDismissed(true)}
-                className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+                className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
                 aria-label="Plus tard"
               >
                 <X className="h-4 w-4" />
@@ -151,7 +152,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
 
             {installPhase === 'downloading' && (
               <>
-                <div className="h-2 bg-gray-200 rounded overflow-hidden mb-2" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-2 bg-gray-200 rounded-sm overflow-hidden mb-2" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
                   <div className="h-full bg-brand-600 transition-all duration-150" style={{ width: `${percent}%` }} />
                 </div>
                 <p className="text-xs text-gray-600 tabular-nums">

@@ -30,7 +30,7 @@ describe('logos de paiement (D25)', () => {
   it('Wave : coins arrondis ; segment : nom accessible = libellé seul, coche sur le mode choisi', () => {
     const { container } = render(<PaymentSegment value="wave" onChange={() => undefined} />);
     const waveImg = [...container.querySelectorAll('img')].find(i => i.getAttribute('src') === PAYMENT_METAS[1].logo);
-    expect(waveImg?.className).toContain('rounded-sm');
+    expect(waveImg?.className).toContain('rounded-xs');
     expect(screen.getByRole('radio', { name: 'Wave' })).toHaveProperty('checked', true);
     expect(screen.getByRole('radio', { name: 'Espèces' })).toHaveProperty('checked', false);
     expect(container.querySelectorAll('img[alt=""]')).toHaveLength(3);

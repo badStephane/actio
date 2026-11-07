@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router';
+import { Pencil, Trash, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateShort } from './uiFormat';
 import PaymentBadge from './PaymentBadge';
@@ -83,7 +83,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               <td className="px-3 py-2">
                 {activity ? (
                   <span className="inline-flex items-center gap-1.5 max-w-[160px]">
-                    <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: activity.color }} aria-hidden="true" />
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: activity.color }} aria-hidden="true" />
                     <span className="truncate text-ink-soft" title={activity.name}>{activity.name}</span>
                   </span>
                 ) : (
@@ -118,7 +118,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                     title="Supprimer"
                     className="btn-icon text-danger hover:bg-danger-soft"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    <Trash className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </td>

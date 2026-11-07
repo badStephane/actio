@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, Download } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router';
+import { ArrowLeft, CircleExclamationPoint, Download } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
@@ -31,8 +31,8 @@ const StatsSkeleton: React.FC = () => (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="panel p-4">
-          <div className="skeleton h-3 w-24 rounded mb-2" />
-          <div className="skeleton h-7 w-16 rounded" />
+          <div className="skeleton h-3 w-24 rounded-sm mb-2" />
+          <div className="skeleton h-7 w-16 rounded-sm" />
         </div>
       ))}
     </div>
@@ -76,6 +76,7 @@ const ActivityStats: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void load();
   }, [load]);
 
@@ -136,7 +137,7 @@ const ActivityStats: React.FC = () => {
     return (
       <div className="p-6">
         <div className="panel p-8 text-center max-w-md mx-auto">
-          <AlertCircle className="h-10 w-10 text-danger mx-auto mb-3" aria-hidden="true" />
+          <CircleExclamationPoint className="h-10 w-10 text-danger mx-auto mb-3" aria-hidden="true" />
           <h2 className="text-base font-semibold text-ink mb-1">Activité introuvable</h2>
           <button type="button" onClick={() => navigate('/activities')} className="btn btn-primary mt-4">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
@@ -160,7 +161,7 @@ const ActivityStats: React.FC = () => {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: activity.color }} aria-hidden="true" />
+          <span className="inline-block w-3 h-3 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: activity.color }} aria-hidden="true" />
           <h1 className="text-xl font-semibold text-ink truncate">Statistiques · {activity.name}</h1>
           {activity.eventDate && (
             <span className="text-sm text-ink-muted tabular-nums">· {formatDateShort(activity.eventDate)}</span>

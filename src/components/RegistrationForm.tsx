@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { CircleExclamationPoint } from 'lucide-react';
 import { addRegistration, getRegistrationById, updateRegistration, findDuplicateRegistration } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
@@ -132,10 +132,12 @@ const RegistrationForm: React.FC = () => {
   }, [editId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void loadActivities();
   }, [loadActivities]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void loadExisting();
   }, [loadExisting]);
 
@@ -303,7 +305,7 @@ const RegistrationForm: React.FC = () => {
   return (
     <div className="page short:py-3">
       <div className="flex flex-col xl:flex-row xl:items-start gap-6">
-        <form onSubmit={handleSubmit} className="panel rounded-card shadow-card w-full max-w-[45rem]" noValidate>
+        <form onSubmit={handleSubmit} className="panel rounded-card shadow-card w-full max-w-180" noValidate>
           <ActivityBar
             value={formData.activityId}
             activities={selectableActivities}
@@ -355,7 +357,7 @@ const RegistrationForm: React.FC = () => {
 
           {submitError && (
             <div role="alert" className="mx-4 mb-4 flex items-start gap-2 px-3 py-2 rounded-control border border-danger-line bg-danger-soft text-sm text-danger">
-              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <CircleExclamationPoint className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{submitError}</span>
             </div>
           )}

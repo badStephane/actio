@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Actio",
-  "version": "2.1.0-rc.2",
+  "version": "2.2.0-rc.1",
   "identifier": "com.badstephane.gestion-inscription",
   "build": {
     "frontendDist": "../dist",
@@ -48,6 +48,9 @@
       "nsis": {
         "installerHooks": "./windows/hooks.nsh"
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.3"
     },
     "android": {
       "debugApplicationIdSuffix": ".debug"

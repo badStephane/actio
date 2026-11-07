@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, ArchiveRestore, BarChart3, CalendarDays, Download, FileUp, Lock, Pencil, Trash2, Users } from 'lucide-react';
+import { Archive, ArchiveArrowUp, ChartColumn, CalendarDays, Download, FileUp, Lock, Pencil, Trash, Users } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { formatAmount, formatDateShort } from './uiFormat';
 
@@ -44,8 +44,8 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
 
   return (
     <div className="panel px-3 py-2.5 flex flex-wrap items-center gap-3">
-      <span className="h-3 w-3 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: a.color }} aria-hidden="true" />
-      <div className="flex-1 min-w-[12rem]">
+      <span className="h-3 w-3 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: a.color }} aria-hidden="true" />
+      <div className="flex-1 min-w-48">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-semibold truncate ${isArchived ? 'text-ink-muted' : 'text-ink'}`}>{a.name}</h3>
           {isDefault && (
@@ -74,11 +74,11 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 flex-shrink-0">
+      <div className="flex flex-wrap items-center gap-1 shrink-0">
         {count > 0 && (
           <>
             <button type="button" onClick={() => onStats(a)} className="btn btn-default btn-sm" aria-label={`Statistiques de ${a.name}`}>
-              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              <ChartColumn className="h-4 w-4" aria-hidden="true" />
               Statistiques
             </button>
             <button type="button" onClick={() => onExport(a)} className="btn btn-default btn-sm" aria-label={`Exporter les inscriptions de ${a.name} en Excel`}>
@@ -102,12 +102,12 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
             className="text-ink-soft hover:bg-gray-100"
             onClick={() => onArchive(a)}
           >
-            {isArchived ? <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
+            {isArchived ? <ArchiveArrowUp className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
           </IconAction>
         )}
         {canDelete && (
           <IconAction label={`Supprimer ${a.name}`} tooltip="Supprimer" className="text-danger hover:bg-danger-soft" onClick={() => onDelete(a)}>
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <Trash className="h-4 w-4" aria-hidden="true" />
           </IconAction>
         )}
       </div>
@@ -120,15 +120,15 @@ export default ActivityRow;
 /** Chargement des activités (U28) : 4 lignes en skeleton plutôt qu'un spinner. */
 export const ActivityListSkeleton: React.FC = () => (
   <div className="page space-y-2" aria-busy="true">
-    <div className="flex justify-end mb-4"><div className="skeleton h-8 w-40 rounded" /></div>
+    <div className="flex justify-end mb-4"><div className="skeleton h-8 w-40 rounded-sm" /></div>
     {Array.from({ length: 4 }).map((_, i) => (
       <div key={i} className="panel px-3 py-3 flex items-center gap-3">
         <div className="skeleton h-3 w-3 rounded-full" />
         <div className="flex-1 space-y-1.5">
-          <div className="skeleton h-3.5 w-48 rounded" />
-          <div className="skeleton h-3 w-32 rounded" />
+          <div className="skeleton h-3.5 w-48 rounded-sm" />
+          <div className="skeleton h-3 w-32 rounded-sm" />
         </div>
-        <div className="skeleton h-8 w-28 rounded" />
+        <div className="skeleton h-8 w-28 rounded-sm" />
       </div>
     ))}
     <span className="sr-only">Chargement des activités...</span>

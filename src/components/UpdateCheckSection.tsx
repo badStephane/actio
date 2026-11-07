@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, ArrowDownCircle } from 'lucide-react';
+import { RefreshCw, CircleArrowDown } from 'lucide-react';
 import { useUpdateCheck, UpdateCheckStatus } from './updateContext';
 
 const STATUS_TEXT: Record<Exclude<UpdateCheckStatus, 'available'>, string> = {
@@ -21,7 +21,7 @@ const UpdateCheckSection: React.FC = () => {
   return (
     <div className="border-t border-gray-200 pt-4">
       <div className="flex items-center gap-2 mb-2">
-        <ArrowDownCircle className="h-3.5 w-3.5 text-gray-600" aria-hidden="true" />
+        <CircleArrowDown className="h-3.5 w-3.5 text-gray-600" aria-hidden="true" />
         <h4 className="text-xs font-medium text-gray-700">Mises à jour</h4>
       </div>
       <button

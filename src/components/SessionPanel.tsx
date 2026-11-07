@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { SessionEntry, VISIBLE_SESSION_ENTRIES, computeSessionTotals } from './sessionEntries';
 import { displayName } from './registrationFormModel';
 import { formatAmount } from './uiFormat';
@@ -28,7 +28,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ entries, activityName, list
   const olderCount = entries.length - visible.length;
 
   return (
-    <aside aria-labelledby="session-title" className="panel rounded-card shadow-card w-full xl:w-[21rem] shrink-0">
+    <aside aria-labelledby="session-title" className="panel rounded-card shadow-card w-full xl:w-84 shrink-0">
       <h2 id="session-title" className="px-4 py-3 border-b border-gray-200 text-sm font-semibold text-ink">
         Saisies de cette session{activityName ? ` · ${activityName}` : ''}
       </h2>
@@ -68,7 +68,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ entries, activityName, list
                       to={`/edit/${encodeURIComponent(entry.id)}?retour=saisie`}
                       className="inline-flex items-center min-h-[24px] px-1 text-sm font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
                     >
-                      Modifier<span className="sr-only"> l'inscription de {name}</span>
+                      Modifier{' '}<span className="sr-only">l'inscription de {name}</span>
                     </Link>
                   </span>
                 </li>

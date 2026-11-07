@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Eye, EyeOff, AlertCircle, ShieldCheck, KeyRound, Info } from 'lucide-react';
+import { Lock, Eye, EyeOff, CircleExclamationPoint, ShieldCheck, KeyRound, Info } from 'lucide-react';
 import actioLogo from '../assets/brand/actio-logo.svg';
 import { createInitialPassword, verifyPassword, MIN_PASSWORD_LENGTH } from '../utils/auth';
 import { useRetryCountdown, formatWait } from './useRetryCountdown';
@@ -97,7 +97,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
   };
 
   const containerClass = overlay
-    ? 'fixed inset-0 z-[60] flex items-center justify-center bg-brand-900'
+    ? 'fixed inset-0 z-60 flex items-center justify-center bg-brand-900'
     : 'h-full flex items-center justify-center bg-brand-900';
 
   return (
@@ -144,7 +144,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
               <button
                 type="button"
                 onClick={() => setShowPassword(s => !s)}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-gray-500 hover:text-gray-700"
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-sm text-gray-500 hover:text-gray-700"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPassword}
               >
@@ -179,9 +179,9 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
             <div
               id="lock-error"
               role="alert"
-              className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700"
+              className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700"
             >
-              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <CircleExclamationPoint className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
               <span>
                 {error}
                 {isWaiting && <> Nouvel essai possible dans <b className="tabular-nums">{formatWait(secondsLeft)}</b>.</>}
@@ -202,7 +202,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
 
           {isSetup ? (
             <p className="flex items-start gap-1.5 text-xs text-gray-600 pt-1">
-              <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" aria-hidden="true" />
+              <Info className="h-3.5 w-3.5 shrink-0 mt-px" aria-hidden="true" />
               <span>
                 Ce mot de passe verrouille l'écran de l'application ; il ne chiffre pas le fichier
                 de données. Pour protéger ce fichier, activez aussi le chiffrement du disque

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
+import { CircleCheckBig, CircleExclamationPoint, X } from 'lucide-react';
 
 export type ToastVariant = 'success' | 'error';
 
@@ -35,6 +35,7 @@ const Toast: React.FC<ToastProps> = ({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- montage avant l'animation d'entrée, refonte notée hors 2.2.0
       setRendered(true);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
       return;
@@ -53,7 +54,7 @@ const Toast: React.FC<ToastProps> = ({
   if (!rendered) return null;
 
   const isError = variant === 'error';
-  const Icon = isError ? AlertCircle : CheckCircle;
+  const Icon = isError ? CircleExclamationPoint : CircleCheckBig;
   const accent = isError ? 'border-l-4 border-red-500' : 'border-l-4 border-emerald-500';
   const iconClass = isError ? 'text-red-600' : 'text-emerald-600';
 
@@ -65,11 +66,11 @@ const Toast: React.FC<ToastProps> = ({
         visible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
       }`}
     >
-      <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${iconClass}`} aria-hidden="true" />
+      <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconClass}`} aria-hidden="true" />
       <p className="text-sm text-gray-700 flex-1">{message}</p>
       <button
         onClick={() => onCloseRef.current()}
-        className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+        className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
         aria-label="Fermer"
       >
         <X className="h-4 w-4" />

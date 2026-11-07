@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { History, Trash2, RefreshCw } from 'lucide-react';
+import { RotateCcwClock, Trash, RefreshCw } from 'lucide-react';
 import { AuditEvent, EntityType, EventType, getAuditEvents, clearAuditLog } from '../utils/audit';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
@@ -80,6 +80,7 @@ const Audit: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void load();
   }, [load]);
 
@@ -112,14 +113,14 @@ const Audit: React.FC = () => {
     return (
       <div className="page h-full flex flex-col" aria-busy="true">
         <div className="toolbar border rounded-card">
-          <div className="skeleton h-7 w-40 rounded" />
-          <div className="skeleton h-7 w-32 rounded" />
-          <div className="skeleton h-7 w-48 rounded" />
+          <div className="skeleton h-7 w-40 rounded-sm" />
+          <div className="skeleton h-7 w-32 rounded-sm" />
+          <div className="skeleton h-7 w-48 rounded-sm" />
         </div>
         <div className="flex-1 overflow-hidden">
           <div className="space-y-2 p-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton h-10 rounded" />
+              <div key={i} className="skeleton h-10 rounded-sm" />
             ))}
           </div>
         </div>
@@ -186,7 +187,7 @@ const Audit: React.FC = () => {
             disabled={events.length === 0}
             className="btn btn-danger-ghost btn-sm disabled:opacity-50 disabled:pointer-events-none"
           >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <Trash className="h-4 w-4" aria-hidden="true" />
             Effacer l'historique
           </button>
         </div>
@@ -195,7 +196,7 @@ const Audit: React.FC = () => {
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <History className="h-10 w-10 mb-3 text-ink-muted" aria-hidden="true" />
+            <RotateCcwClock className="h-10 w-10 mb-3 text-ink-muted" aria-hidden="true" />
             <p className="text-sm font-semibold text-ink-soft">
               {events.length === 0 ? 'Aucun événement' : 'Aucun résultat pour ces filtres'}
             </p>
@@ -217,7 +218,7 @@ const Audit: React.FC = () => {
                     {formatDateTime(e.createdAt)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-semibold ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
                       {EVENT_LABEL[e.eventType] ?? e.eventType}
                     </span>
                   </td>

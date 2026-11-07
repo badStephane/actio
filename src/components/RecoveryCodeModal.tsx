@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { LifeBuoy, X, AlertCircle, CheckCircle, Trash2, RefreshCw } from 'lucide-react';
+import { LifeBuoy, X, CircleExclamationPoint, CircleCheckBig, Trash, RefreshCw } from 'lucide-react';
 import { hasRecoveryCode, generateRecoveryCode, clearRecoveryCode } from '../utils/auth';
 import ConfirmModal from './ConfirmModal';
 import RecoveryCodeDisplay from './RecoveryCodeDisplay';
@@ -40,6 +40,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation de la modale à chaque ouverture, refonte notée hors 2.2.0
     setNewCode(null);
     setAcknowledged(false);
     setError(null);
@@ -91,7 +92,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
     if (success) {
       return (
         <div className="p-6 text-center" role="status">
-          <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-2" aria-hidden="true" />
+          <CircleCheckBig className="h-10 w-10 text-emerald-600 mx-auto mb-2" aria-hidden="true" />
           <p className="text-sm text-gray-800">{success}</p>
         </div>
       );
@@ -161,8 +162,8 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
           {renderBody()}
 
           {error && (
-            <div role="alert" className="mx-4 mb-3 flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div role="alert" className="mx-4 mb-3 flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700">
+              <CircleExclamationPoint className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
@@ -175,7 +176,7 @@ const RecoveryCodeModal: React.FC<RecoveryCodeModalProps> = ({ open, onClose }) 
                 disabled={busy}
                 className="btn btn-ghost text-red-700 hover:bg-red-50 hover:text-red-800"
               >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <Trash className="h-3.5 w-3.5" aria-hidden="true" />
                 Supprimer
               </button>
             ) : (

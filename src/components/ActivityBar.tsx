@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router';
+import { TriangleExclamationPoint, RefreshCw } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { isPastActivity } from './currentActivity';
 import { FieldError } from './RegistrationFormParts';
@@ -45,7 +45,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({
           disabled={isLoading || hasLoadError}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'activityId-error' : undefined}
-          className={`input-field h-10 w-auto max-w-[22rem] font-semibold text-ink ${error ? 'has-error' : ''}`}
+          className={`input-field h-10 w-auto max-w-88 font-semibold text-ink ${error ? 'has-error' : ''}`}
         >
           {isLoading ? (
             <option value="">Chargement des activités...</option>
@@ -57,7 +57,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({
         </select>
         {selected && isPastActivity(selected) && !selected.archivedAt && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning-line bg-warning-soft text-xs font-semibold text-warning">
-            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+            <TriangleExclamationPoint className="h-3 w-3" aria-hidden="true" />
             Événement passé
           </span>
         )}

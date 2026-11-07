@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { TriangleExclamationPoint, X } from 'lucide-react';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -46,6 +46,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   useEffect(() => {
     if (open) {
       returnFocusRef.current = document.activeElement as HTMLElement | null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- montage avant l'animation d'entrée, refonte notée hors 2.2.0
       setTyped('');
       setRendered(true);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
@@ -111,7 +112,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2 min-w-0">
             {variant === 'danger' && (
-              <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
+              <TriangleExclamationPoint className="h-4 w-4 text-red-600 shrink-0" aria-hidden="true" />
             )}
             <h3 id="confirm-modal-title" className="text-sm font-semibold text-gray-800 truncate">
               {title}
@@ -120,7 +121,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             onClick={onCancel}
             disabled={busy}
-            className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0 ml-2 disabled:opacity-50"
+            className="text-gray-500 hover:text-gray-700 transition-colors shrink-0 ml-2 disabled:opacity-50"
             aria-label="Fermer"
           >
             <X className="h-4 w-4" />

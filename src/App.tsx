@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router';
 import { getVersion } from '@tauri-apps/api/app';
-import { ClipboardList, PlusCircle, Home as HomeIcon, Lock, KeyRound, LifeBuoy, CalendarDays, Menu, X, Settings, History } from 'lucide-react';
+import { ClipboardList, CirclePlus, House as HomeIcon, Lock, KeyRound, LifeBuoy, CalendarDays, Menu, X, Settings, RotateCcwClock } from 'lucide-react';
 import Home from './pages/Home';
 import Activities from './pages/Activities';
 import ActivityStats from './pages/ActivityStats';
@@ -49,7 +49,7 @@ const PAGE_TITLES: Record<string, string> = {
 function PageHeader() {
   const location = useLocation();
   const path = location.pathname;
-  let title = '';
+  let title: string;
   if (path.startsWith('/edit/')) title = "Modifier l'inscription";
   else if (path.startsWith('/activities/') && path.endsWith('/stats')) title = '';
   else title = PAGE_TITLES[path] || '';
@@ -143,7 +143,7 @@ function AppShell() {
                 onClick={() => setSidebarOpen(false)}
                 aria-keyshortcuts="Control+N F2"
               >
-                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                <CirclePlus className="h-4 w-4" aria-hidden="true" />
                 Nouvelle inscription
                 <kbd className="kbd ml-auto border-slate-400 text-slate-300" aria-hidden="true">
                   {NEW_REGISTRATION_SHORTCUT_LABEL}
@@ -158,7 +158,7 @@ function AppShell() {
                 Activités
               </NavLink>
               <NavLink to="/audit" className={navLinkClass} onClick={() => setSidebarOpen(false)}>
-                <History className="h-4 w-4" />
+                <RotateCcwClock className="h-4 w-4" />
                 Historique
               </NavLink>
             </nav>

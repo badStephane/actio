@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, CheckCircle2, Eraser, List, Save, X } from 'lucide-react';
+import { Link } from 'react-router';
+import { CircleExclamationPoint, TriangleExclamationPoint, CircleCheck, Eraser, List, Save, X } from 'lucide-react';
 import { Registration } from '../types';
 import { RegistrationFormErrors, displayName, fieldA11y } from './registrationFormModel';
 import { formatIsoDate } from './importReviewModel';
@@ -17,7 +17,7 @@ export const RequiredMark: React.FC = () => (
 export const FieldError: React.FC<{ id: string; message?: string }> = ({ id, message }) =>
   message ? (
     <p id={id} className="mt-1 flex items-start gap-1 text-sm text-danger">
-      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+      <CircleExclamationPoint className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
       {message}
     </p>
   ) : null;
@@ -110,7 +110,7 @@ export const DateField: React.FC<DateFieldProps> = ({ value, today, isOpen, isEd
       </div>
       {!isEditMode && !isToday && value && !error && (
         <p className="flex items-center gap-1 pb-3 text-sm font-semibold text-warning">
-          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <TriangleExclamationPoint className="h-4 w-4 shrink-0" aria-hidden="true" />
           Date : {formatIsoDate(value)}, différente d'aujourd'hui
         </p>
       )}
@@ -133,7 +133,7 @@ export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
   <div role="status" className={saved ? 'mx-4 mt-4 short:mt-2' : 'sr-only'}>
     {saved && (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 short:py-1 rounded-control border border-success-line bg-success-soft text-sm text-success">
-        <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <CircleCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>
           Inscription enregistrée : <b>{displayName(saved)}</b> ·{' '}
           <b className="tabular-nums">{formatAmount(saved.amount)}</b> · {paymentLabel(saved.paymentType)}.
@@ -143,7 +143,7 @@ export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
             to={`/edit/${encodeURIComponent(saved.id)}?retour=saisie`}
             className="ml-auto inline-flex items-center min-h-[24px] px-1 font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
           >
-            Modifier<span className="sr-only"> l'inscription de {displayName(saved)}</span>
+            Modifier{' '}<span className="sr-only">l'inscription de {displayName(saved)}</span>
           </Link>
         )}
       </div>
@@ -152,16 +152,16 @@ export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
 );
 
 export const RegistrationFormSkeleton: React.FC = () => (
-  <div className="px-6 py-5 max-w-[45rem]" aria-busy="true">
+  <div className="px-6 py-5 max-w-180" aria-busy="true">
     <div className="panel p-4 space-y-4">
-      <div className="skeleton h-10 w-72 rounded" />
+      <div className="skeleton h-10 w-72 rounded-sm" />
       <div className="grid grid-cols-2 gap-4">
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
       </div>
-      <div className="skeleton h-11 w-2/3 rounded" />
+      <div className="skeleton h-11 w-2/3 rounded-sm" />
     </div>
     <span className="sr-only">Chargement de l'inscription...</span>
   </div>
@@ -170,7 +170,7 @@ export const RegistrationFormSkeleton: React.FC = () => (
 export const RegistrationNotFound: React.FC<{ onBack: () => void }> = ({ onBack }) => (
   <div className="p-6">
     <div className="panel p-8 text-center max-w-md mx-auto">
-      <AlertCircle className="h-10 w-10 text-red-600 mx-auto mb-3" aria-hidden="true" />
+      <CircleExclamationPoint className="h-10 w-10 text-red-600 mx-auto mb-3" aria-hidden="true" />
       <h2 className="text-base font-semibold text-gray-800 mb-1">Inscription introuvable</h2>
       <p className="text-sm text-gray-600 mb-4">L'inscription demandée n'existe pas ou a été supprimée.</p>
       <button onClick={onBack} className="btn btn-primary">

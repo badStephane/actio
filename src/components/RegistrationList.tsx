@@ -1,6 +1,6 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { ClipboardList, PlusCircle } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
+import { ClipboardList, CirclePlus } from 'lucide-react';
 import { getRegistrations, deleteRegistration } from '../utils/storage';
 import { exportToExcel } from '../utils/excelExport';
 import { getActivities } from '../utils/activities';
@@ -58,6 +58,7 @@ const RegistrationList: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void load();
   }, [load]);
 
@@ -163,7 +164,7 @@ const RegistrationList: React.FC = () => {
               </button>
             ) : (
               <Link to={filters.activity ? `/add?activity=${encodeURIComponent(filters.activity)}` : '/add'} className="mt-3 btn btn-primary btn-sm">
-                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                <CirclePlus className="h-4 w-4" aria-hidden="true" />
                 Nouvelle inscription
               </Link>
             )}

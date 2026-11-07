@@ -41,7 +41,7 @@ const RecoveryCodeDisplay: React.FC<RecoveryCodeDisplayProps> = ({
       <div className="flex items-center gap-2">
         <output
           aria-label="Code de récupération"
-          className="flex-1 text-center font-mono text-base font-semibold tracking-wider text-gray-900 bg-gray-50 border border-gray-300 rounded px-3 py-2 select-all"
+          className="flex-1 text-center font-mono text-base font-semibold tracking-wider text-gray-900 bg-gray-50 border border-gray-300 rounded-sm px-3 py-2 select-all"
         >
           {code}
         </output>

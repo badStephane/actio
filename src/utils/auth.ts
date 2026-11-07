@@ -37,7 +37,7 @@ const toBase64 = (bytes: Uint8Array): string => {
   return btoa(bin);
 };
 
-const fromBase64 = (s: string): Uint8Array => {
+const fromBase64 = (s: string): Uint8Array<ArrayBuffer> => {
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -53,7 +53,7 @@ const constantTimeEqual = (a: string, b: string): boolean => {
 
 const derive = async (
   password: string,
-  salt: Uint8Array,
+  salt: Uint8Array<ArrayBuffer>,
   iterations: number
 ): Promise<string> => {
   const passwordKey = await crypto.subtle.importKey(
@@ -118,7 +118,7 @@ export const createInitialPassword = async (password: string): Promise<void> => 
     );
   } catch (error) {
     if (/UNIQUE|PRIMARY KEY/i.test(error instanceof Error ? error.message : String(error))) {
-      throw new Error('Un mot de passe existe déjà.');
+      throw new Error('Un mot de passe existe déjà.', { cause: error });
     }
     throw error;
   }

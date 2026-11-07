@@ -28,7 +28,9 @@ const call = async <T>(command: string): Promise<T> => {
   try {
     return await invoke<T>(command);
   } catch (error) {
-    throw new Error(typeof error === 'string' ? error : error instanceof Error ? error.message : String(error));
+    throw new Error(typeof error === 'string' ? error : error instanceof Error ? error.message : String(error), {
+      cause: error,
+    });
   }
 };
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { PlusCircle, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router';
+import { CirclePlus, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, ChartColumn } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
@@ -31,12 +31,12 @@ interface DashboardData {
 
 const HomeSkeleton: React.FC = () => (
   <div className="page" aria-busy="true">
-    <div className="skeleton h-14 w-full rounded mb-4" />
+    <div className="skeleton h-14 w-full rounded-sm mb-4" />
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="panel p-4">
-          <div className="skeleton h-3 w-24 rounded mb-2" />
-          <div className="skeleton h-7 w-20 rounded" />
+          <div className="skeleton h-3 w-24 rounded-sm mb-2" />
+          <div className="skeleton h-7 w-20 rounded-sm" />
         </div>
       ))}
     </div>
@@ -80,6 +80,7 @@ const Home: React.FC = () => {
   }, [setCurrentActivityId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void load();
   }, [load]);
 
@@ -157,7 +158,7 @@ const Home: React.FC = () => {
               value={currentActivityId}
               onChange={(e) => setCurrentActivityId(e.target.value)}
               title="Changer l'activité affichée"
-              className="input-field w-auto max-w-[15rem] h-control"
+              className="input-field w-auto max-w-60 h-control"
             >
               {liveActivities.map(a => (
                 <option key={a.id} value={a.id}>
@@ -169,7 +170,7 @@ const Home: React.FC = () => {
           </label>
           {currentActivity && (
             <Link to={`/activities/${currentActivity.id}/stats`} className="btn btn-default btn-sm">
-              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              <ChartColumn className="h-4 w-4" aria-hidden="true" />
               Statistiques
             </Link>
           )}
@@ -178,7 +179,7 @@ const Home: React.FC = () => {
             Voir la liste
           </Link>
           <Link to={addHref} className="btn btn-brand btn-lg">
-            <PlusCircle className="h-4 w-4" aria-hidden="true" />
+            <CirclePlus className="h-4 w-4" aria-hidden="true" />
             Nouvelle inscription
           </Link>
         </div>
@@ -222,7 +223,7 @@ const Home: React.FC = () => {
           </p>
           <p className="text-sm text-ink-muted mb-4">Créez la première inscription pour cette activité.</p>
           <Link to={addHref} className="btn btn-primary">
-            <PlusCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            <CirclePlus className="h-3.5 w-3.5" aria-hidden="true" />
             Créer une inscription
           </Link>
         </div>

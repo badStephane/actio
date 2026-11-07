@@ -94,6 +94,7 @@ const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone au montage (état de chargement posé avant l'await), refonte notée hors 2.2.0
     void checkPasswordState();
   }, [checkPasswordState]);
 
@@ -188,9 +189,9 @@ const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
         onForgot={handleForgot}
       />
       {/* Contexte d'empilement au-dessus de l'écran de verrouillage (z-60). */}
-      <div className="relative z-[65]">
+      <div className="relative z-65">
         {resetError && (
-          <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] panel border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 max-w-sm">
+          <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-70 panel border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 max-w-sm">
             {resetError}
           </div>
         )}

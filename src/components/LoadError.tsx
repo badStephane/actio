@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { CircleExclamationPoint, RefreshCw } from 'lucide-react';
 
 interface LoadErrorProps {
   message?: string;
@@ -17,7 +17,7 @@ const LoadError: React.FC<LoadErrorProps> = ({
 }) => (
   <div className={className}>
     <div role="alert" className="panel p-8 text-center max-w-md mx-auto">
-      <AlertCircle className="h-10 w-10 text-red-600 mx-auto mb-3" aria-hidden="true" />
+      <CircleExclamationPoint className="h-10 w-10 text-red-600 mx-auto mb-3" aria-hidden="true" />
       <p className="text-sm font-semibold text-gray-800 mb-1">{message}</p>
       <p className="text-xs text-gray-600 mb-4">
         Vos données enregistrées ne sont pas affectées. Réessayez ; si le problème persiste,

@@ -200,7 +200,7 @@ export const deleteActivity = async (id: string): Promise<void> => {
   try {
     await db.execute('DELETE FROM activities WHERE id = $1', [id]);
   } catch (error) {
-    if (isForeignKeyError(error)) throw new Error(ACTIVITY_IN_USE_MESSAGE);
+    if (isForeignKeyError(error)) throw new Error(ACTIVITY_IN_USE_MESSAGE, { cause: error });
     throw error;
   }
   if (before) await logEvent('deleted', 'activity', id, before.name);

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FileUp, X, AlertCircle, CheckCircle, Download, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { FileUp, X, CircleExclamationPoint, CircleCheckBig, Download, FileSpreadsheet, TriangleExclamationPoint } from 'lucide-react';
 import { Activity } from '../types';
 import { getRegistrations, addRegistrationsBulk } from '../utils/storage';
 import {
@@ -36,6 +36,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation de la modale à chaque ouverture, refonte notée hors 2.2.0
     setPhase('pick');
     setError(null);
     setResult(null);
@@ -109,7 +110,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
   const renderHeader = (subtitle?: string) => (
     <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
       <div className="flex items-center gap-2 min-w-0">
-        <FileUp className="h-4 w-4 text-brand-600 flex-shrink-0" aria-hidden="true" />
+        <FileUp className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" />
         <div className="min-w-0">
           <h3 id="import-modal-title" className="text-sm font-semibold text-gray-800 truncate">
             Importer dans « {activity.name} »
@@ -120,7 +121,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
       <button
         onClick={onClose}
         disabled={phase === 'importing'}
-        className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0 disabled:opacity-50"
+        className="text-gray-500 hover:text-gray-700 transition-colors shrink-0 disabled:opacity-50"
         aria-label="Fermer"
       >
         <X className="h-4 w-4" />
@@ -161,15 +162,15 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
               </div>
 
               {error && (
-                <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700">
+                  <CircleExclamationPoint className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>{error}</span>
                 </div>
               )}
 
               <button
                 onClick={handlePickClick}
-                className="w-full border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/30 rounded p-6 text-center transition-colors"
+                className="w-full border-2 border-dashed border-gray-300 hover:border-brand-400 hover:bg-brand-50/30 rounded-sm p-6 text-center transition-colors"
               >
                 <FileSpreadsheet className="h-8 w-8 text-gray-500 mx-auto mb-2" aria-hidden="true" />
                 <p className="text-sm font-medium text-gray-700">Sélectionner un fichier</p>
@@ -247,13 +248,13 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
           <>
             {renderHeader('Terminé')}
             <div className="p-8 text-center" role="status">
-              <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
+              <CircleCheckBig className="h-12 w-12 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
               <p className="text-base font-semibold text-gray-900">
                 {importedCount} inscription{importedCount > 1 ? 's' : ''} importée{importedCount > 1 ? 's' : ''}
               </p>
               {result && (result.duplicates.length > 0 || result.invalid.length > 0) && (
                 <p className="text-xs text-gray-600 mt-2 inline-flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                  <TriangleExclamationPoint className="h-3 w-3" aria-hidden="true" />
                   {result.duplicates.length} doublon{result.duplicates.length > 1 ? 's' : ''} ignoré{result.duplicates.length > 1 ? 's' : ''},{' '}
                   {result.invalid.length} erreur{result.invalid.length > 1 ? 's' : ''}
                 </p>
