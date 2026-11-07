@@ -39,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '>=22.13.0 <23'  # node:sqlite sans drapeau (tests QA)
+          node-version: '>=22.22.2 <23'  # node:sqlite sans drapeau (tests QA), jsdom 31 et vitest 5
           cache: npm
 
       - name: Vérifier Node (>= 22.13, node:sqlite)
@@ -133,7 +133,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '>=22.13.0 <23'  # node:sqlite sans drapeau (tests QA)
+          node-version: '>=22.22.2 <23'  # node:sqlite sans drapeau (tests QA), jsdom 31 et vitest 5
           cache: npm
 
       - name: Setup Rust
