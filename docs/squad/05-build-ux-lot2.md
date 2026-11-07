@@ -39,7 +39,7 @@ Spécification : 02-design-ux.md §3 Lot 2 (2.1 à 2.5, U11 à U22), plus les aj
 - Composants : tous sous 400 lignes. `RegistrationForm.tsx` passe à 387 lignes avec l'extraction de `FormActions`. Serveur 5176 arrêté.
 
 ## Captures
-Dossier `/private/tmp/claude-502/-Users-stephane-Documents-actio/ae03cc03-dae3-4424-a90c-1779c58a10b8/scratchpad/screens/` :
+Dossier `captures locales non versionnées (screens/)` :
 - avant (9bd28a5) : `lot2_avant_{accueil,liste,activites,stats,historique}.png`, `lot2_avant_saisie_900x600.png` ;
 - après : mêmes noms en `lot2_apres_*`, plus `lot2_apres_liste_activite.png` et `lot2_apres_saisie_900x600_enregistree.png`.
 - `lot2_apres_stats.png` est prise en mouvement réduit (`--force-prefers-reduced-motion`). En capture normale, recharts est saisi en pleine animation (HD4), comme dans la capture « avant ».

@@ -42,7 +42,7 @@ Mesure : Chrome headless piloté en CDP avec de vrais événements clavier (scri
 - Mode démo : saisie, panneau, bandeau, liste, Préférences vérifiés en capture. Le serveur 5176 est arrêté.
 
 ## Captures (1366×768, mode démo)
-Dossier `/private/tmp/claude-502/-Users-stephane-Documents-actio/ae03cc03-dae3-4424-a90c-1779c58a10b8/scratchpad/screens/` :
+Dossier `captures locales non versionnées (screens/)` :
 - avant : `lot1_avant_saisie.png`, `lot1_avant_liste.png` ;
 - après : `lot1_apres_saisie_vide.png`, `lot1_apres_saisie_enregistree.png` (2 saisies, bandeau, panneau, focus sur Nom), `lot1_apres_liste.png` (sans Sauvegarder/Restaurer), `lot1_apres_preferences_sauvegardes.png`, `lot1_apres_preferences_mesure.png`, `lot1_apres_saisie_900x600.png`.
 

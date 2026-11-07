@@ -33,7 +33,7 @@ Tests QA : les 2 `it.fails` passent en `it`, assertions inchangées. Une seule a
 - `git status src-tauri` : 16 icônes modifiées, dont icon.ico et icon.icns ; rien d'autre.
 
 ## Captures (1366×768)
-`/private/tmp/claude-502/-Users-stephane-Documents-actio/ae03cc03-dae3-4424-a90c-1779c58a10b8/scratchpad/screens/` : `brand_accueil_sidebar.png`, `brand_saisie_paiement.png`, `brand_liste_pastilles.png`, `brand_stats_legendes.png`, `brand_verrouillage.png`, `brand_creation_mot_de_passe.png`, `brand_erreur_base.png`. Les trois dernières viennent d'une page de prévisualisation temporaire, supprimée juste après (rendu hors mode démo). La bande blanche en bas de ces trois captures vient de cette page, pas de l'app. Serveur 5176 arrêté.
+`captures locales non versionnées (screens/)` : `brand_accueil_sidebar.png`, `brand_saisie_paiement.png`, `brand_liste_pastilles.png`, `brand_stats_legendes.png`, `brand_verrouillage.png`, `brand_creation_mot_de_passe.png`, `brand_erreur_base.png`. Les trois dernières viennent d'une page de prévisualisation temporaire, supprimée juste après (rendu hors mode démo). La bande blanche en bas de ces trois captures vient de cette page, pas de l'app. Serveur 5176 arrêté.
 
 ## Écarts
 1. `og:image` est relative : certains services d'aperçu exigent une URL absolue, et le domaine Vercel n'est pas connu dans le dépôt.

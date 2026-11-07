@@ -47,7 +47,7 @@ Spécification : 02-design-ux.md §3 Lot 3 (3.1 à 3.4 ; U24 à U27, U29), plus 
 - `VITE_DEMO_MODE=true npx vite build` : OK, 2207 modules, JS 1 267 Ko (389 Ko gzip), CSS 42 Ko. Composants sous 400 lignes (maximum : `RegistrationForm.tsx`, 387). Serveur 5176 arrêté.
 
 ## Captures
-`/private/tmp/claude-502/-Users-stephane-Documents-actio/ae03cc03-dae3-4424-a90c-1779c58a10b8/scratchpad/screens/` : `lot3_{avant,apres}_{accueil,saisie,liste,activites,stats,historique,controle-imports}_{1366,1920}.png` (28 fichiers), en mouvement réduit pour que les graphiques soient rendus. Liste : `?activity=demo-act-plage`.
+`captures locales non versionnées (screens/)` : `lot3_{avant,apres}_{accueil,saisie,liste,activites,stats,historique,controle-imports}_{1366,1920}.png` (28 fichiers), en mouvement réduit pour que les graphiques soient rendus. Liste : `?activity=demo-act-plage`.
 
 ## Écarts
 1. Écran de verrouillage : pas de capture (HL6). Il reprend les boutons et la gamme `brand`, mais pas la marine.
