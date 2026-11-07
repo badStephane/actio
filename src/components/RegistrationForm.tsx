@@ -1,134 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CheckCircle, AlertCircle, Save, X } from 'lucide-react';
 import { addRegistration, getRegistrationById, updateRegistration, findDuplicateRegistration } from '../utils/storage';
 import { getActivities } from '../utils/activities';
+import { todayLocalIso } from '../utils/dates';
 import { Activity, DEFAULT_ACTIVITY_ID, Registration } from '../types';
-import { CheckCircle, AlertCircle, Save, X } from 'lucide-react';
+import { Contact } from '../utils/contacts';
 import ConfirmModal from './ConfirmModal';
 import ContactAutocomplete from './ContactAutocomplete';
-import { Contact } from '../utils/contacts';
+import LoadError from './LoadError';
+import {
+  ActivityField,
+  DateAmountFields,
+  FieldError,
+  PaymentFieldset,
+  RegistrationFormSkeleton,
+  RegistrationNotFound,
+} from './RegistrationFormParts';
+import {
+  RegistrationFormState,
+  RegistrationFormErrors,
+  RegistrationFormField,
+  validateRegistrationForm,
+  buildRegistrationPayload,
+  fieldA11y,
+} from './registrationFormModel';
+import { errorMessage } from './uiFormat';
 
-interface FormState {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  address: string;
-  registrationDate: string;
-  paymentType: 'wave' | 'cash' | 'orange_money';
-  amount: string;
-  activityId: string;
-}
+const REDIRECT_DELAY_MS = 1200;
+const CONTACT_FIELDS: RegistrationFormField[] = ['lastName', 'firstName', 'phone'];
 
-const PHONE_DIGITS_RE = /\d/g;
+const emptyForm = (activityId: string): RegistrationFormState => ({
+  firstName: '',
+  lastName: '',
+  phone: '',
+  address: '',
+  registrationDate: todayLocalIso(),
+  paymentType: 'cash',
+  amount: '',
+  activityId,
+});
+
+const omitKeys = (errors: RegistrationFormErrors, keys: RegistrationFormField[]): RegistrationFormErrors =>
+  Object.fromEntries(Object.entries(errors).filter(([k]) => !keys.includes(k as RegistrationFormField)));
 
 const RegistrationForm: React.FC = () => {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const presetActivityId = searchParams.get('activity');
   const isEditMode = Boolean(editId);
 
-  const [formData, setFormData] = useState<FormState>({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    address: '',
-    registrationDate: new Date().toISOString().split('T')[0],
-    paymentType: 'cash',
-    amount: '',
-    activityId: DEFAULT_ACTIVITY_ID,
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<RegistrationFormState>(() =>
+    emptyForm(presetActivityId || DEFAULT_ACTIVITY_ID)
+  );
+  const [errors, setErrors] = useState<RegistrationFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoadingExisting, setIsLoadingExisting] = useState(isEditMode);
+  const [existingLoadError, setExistingLoadError] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [activitiesError, setActivitiesError] = useState(false);
   const [duplicate, setDuplicate] = useState<Registration | null>(null);
+  const submittingRef = useRef(false);
+  const redirectTimerRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const list = await getActivities(false);
-        if (!cancelled) setActivities(list);
-      } catch (error) {
-        console.error('Error loading activities:', error);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useEffect(() => () => window.clearTimeout(redirectTimerRef.current), []);
 
-  useEffect(() => {
+  const loadActivities = useCallback(async () => {
+    setActivitiesError(false);
+    try {
+      const list = await getActivities(true);
+      setActivities(list);
+      if (isEditMode) return;
+      const live = list.filter(a => !a.archivedAt);
+      setFormData(prev => {
+        const picked = live.find(a => a.id === prev.activityId) ?? live[0];
+        if (!picked) return prev;
+        const shouldPrefill = prev.amount === '' && picked.defaultAmount !== undefined;
+        return {
+          ...prev,
+          activityId: picked.id,
+          amount: shouldPrefill ? String(picked.defaultAmount) : prev.amount,
+        };
+      });
+    } catch {
+      setActivitiesError(true);
+    }
+  }, [isEditMode]);
+
+  const loadExisting = useCallback(async () => {
     if (!editId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const existing = await getRegistrationById(editId);
-        if (cancelled) return;
-        if (!existing) {
-          setNotFound(true);
-        } else {
-          setFormData({
-            firstName: existing.firstName,
-            lastName: existing.lastName,
-            phone: existing.phone,
-            address: existing.address,
-            registrationDate: existing.registrationDate,
-            paymentType: existing.paymentType,
-            amount: String(existing.amount),
-            activityId: existing.activityId,
-          });
-        }
-      } catch (error) {
-        console.error('Error loading registration:', error);
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setIsLoadingExisting(false);
+    setIsLoadingExisting(true);
+    setExistingLoadError(false);
+    try {
+      const existing = await getRegistrationById(editId);
+      if (!existing) {
+        setNotFound(true);
+      } else {
+        setFormData({
+          firstName: existing.firstName,
+          lastName: existing.lastName,
+          phone: existing.phone,
+          address: existing.address,
+          registrationDate: existing.registrationDate,
+          paymentType: existing.paymentType,
+          amount: String(existing.amount),
+          activityId: existing.activityId,
+        });
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    } catch {
+      setExistingLoadError(true);
+    } finally {
+      setIsLoadingExisting(false);
+    }
   }, [editId]);
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
+  useEffect(() => {
+    void loadActivities();
+  }, [loadActivities]);
 
-    if (!formData.activityId) newErrors.activityId = "L'activite est requise";
-    if (!formData.lastName.trim()) newErrors.lastName = 'Le nom est requis';
-    if (!formData.firstName.trim()) newErrors.firstName = 'Le prenom est requis';
+  useEffect(() => {
+    void loadExisting();
+  }, [loadExisting]);
 
-    const phoneDigits = (formData.phone.match(PHONE_DIGITS_RE) || []).length;
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Le telephone est requis';
-    } else if (phoneDigits < 8) {
-      newErrors.phone = 'Au moins 8 chiffres';
-    }
-
-    if (!formData.address.trim()) newErrors.address = "L'adresse est requise";
-    if (!formData.registrationDate) newErrors.registrationDate = 'La date est requise';
-
-    const amountNum = parseFloat(formData.amount.replace(',', '.'));
-    if (!formData.amount.trim()) {
-      newErrors.amount = 'Le montant est requis';
-    } else if (Number.isNaN(amountNum) || amountNum <= 0) {
-      newErrors.amount = 'Montant invalide';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const clearErrors = (keys: RegistrationFormField[]) => {
+    setErrors(prev => (keys.some(k => prev[k]) ? omitKeys(prev, keys) : prev));
   };
 
-  const setFieldValue = (name: keyof FormState, value: string) => {
+  const setFieldValue = (name: RegistrationFormField, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
+    clearErrors([name]);
   };
 
   const fillFromContact = (contact: Contact) => {
@@ -139,74 +143,56 @@ const RegistrationForm: React.FC = () => {
       phone: contact.phone,
       address: contact.address || prev.address,
     }));
-    setErrors(prev => {
-      const next = { ...prev };
-      delete next.lastName;
-      delete next.firstName;
-      delete next.phone;
-      if (contact.address) delete next.address;
-      return next;
-    });
+    clearErrors(contact.address ? [...CONTACT_FIELDS, 'address'] : CONTACT_FIELDS);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const name = e.target.name as RegistrationFormField;
+    const { value } = e.target;
     setFormData(prev => {
       const next = { ...prev, [name]: value };
-      if (name === 'activityId' && !isEditMode) {
-        const picked = activities.find(a => a.id === value);
-        if (picked?.defaultAmount !== undefined && (prev.amount === '' || prev.amount === '0')) {
-          next.amount = String(picked.defaultAmount);
-        }
-      }
-      return next;
+      if (name !== 'activityId' || isEditMode) return next;
+      const picked = activities.find(a => a.id === value);
+      const canPrefill = prev.amount === '' || prev.amount === '0';
+      return picked?.defaultAmount !== undefined && canPrefill
+        ? { ...next, amount: String(picked.defaultAmount) }
+        : next;
     });
-
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    clearErrors([name]);
   };
 
-  const buildPayload = () => ({
-    firstName: formData.firstName.trim(),
-    lastName: formData.lastName.trim(),
-    phone: formData.phone.trim(),
-    address: formData.address.trim(),
-    registrationDate: formData.registrationDate,
-    paymentType: formData.paymentType,
-    amount: parseFloat(formData.amount.replace(',', '.')),
-    activityId: formData.activityId,
-  });
+  const releaseSubmit = () => {
+    submittingRef.current = false;
+    setIsSubmitting(false);
+  };
 
   const persist = async () => {
-    setIsSubmitting(true);
     try {
-      const payload = buildPayload();
-      if (isEditMode && editId) {
-        await updateRegistration({ id: editId, ...payload });
-      } else {
-        await addRegistration(payload);
-      }
+      const payload = buildRegistrationPayload(formData);
+      if (isEditMode && editId) await updateRegistration({ id: editId, ...payload });
+      else await addRegistration(payload);
       setIsSuccess(true);
-      setTimeout(() => {
-        setIsSuccess(false);
-        navigate('/registrations');
-      }, 1200);
-    } catch (error) {
-      console.error('Error saving registration:', error);
-    } finally {
-      setIsSubmitting(false);
+      redirectTimerRef.current = window.setTimeout(() => navigate('/registrations'), REDIRECT_DELAY_MS);
+    } catch (err) {
+      const detail = errorMessage(err, '');
+      setSubmitError(
+        `L'inscription n'a pas pu être enregistrée. Vos informations sont conservées, réessayez.${detail ? ` (Détail : ${detail})` : ''}`
+      );
+      releaseSubmit();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    // M2 : verrou posé avant toute attente, contre le double clic / double Entrée.
+    if (submittingRef.current) return;
+    setSubmitError(null);
+    const found = validateRegistrationForm(formData);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
 
+    submittingRef.current = true;
+    setIsSubmitting(true);
     try {
       const existing = await findDuplicateRegistration(
         formData.activityId,
@@ -219,10 +205,9 @@ const RegistrationForm: React.FC = () => {
         setDuplicate(existing);
         return;
       }
-    } catch (error) {
-      console.error('Error checking for duplicate:', error);
+    } catch {
+      // La détection de doublon n'est qu'un avertissement (D9) : on enregistre quand même.
     }
-
     await persist();
   };
 
@@ -231,36 +216,39 @@ const RegistrationForm: React.FC = () => {
     await persist();
   };
 
-  if (isLoadingExisting) {
-    return (
-      <div className="p-6 max-w-2xl" aria-busy="true">
-        <div className="panel p-4 space-y-4">
-          <div className="skeleton h-8 w-48 rounded" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="skeleton h-9 rounded" />
-            <div className="skeleton h-9 rounded" />
-          </div>
-          <div className="skeleton h-9 rounded" />
-          <div className="skeleton h-16 rounded" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="skeleton h-9 rounded" />
-            <div className="skeleton h-9 rounded" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleCancelDuplicate = () => {
+    setDuplicate(null);
+    releaseSubmit();
+  };
 
-  if (notFound) {
+  if (isLoadingExisting) return <RegistrationFormSkeleton />;
+  if (existingLoadError) {
+    return <LoadError message="Impossible de charger cette inscription." onRetry={() => void loadExisting()} />;
+  }
+  if (notFound) return <RegistrationNotFound onBack={() => navigate('/registrations')} />;
+
+  const selectableActivities = activities.filter(a => !a.archivedAt || a.id === formData.activityId);
+  const inputClass = (field: RegistrationFormField, extra = '') =>
+    `input-field ${extra} ${errors[field] ? 'has-error' : ''}`.trim();
+  const contactInputProps = (field: 'lastName' | 'firstName' | 'phone', type: string, placeholder?: string) => ({
+    type,
+    id: field,
+    name: field,
+    placeholder,
+    autoComplete: 'off',
+    className: inputClass(field),
+    ...fieldA11y(field, errors),
+  });
+
+  if (isSuccess) {
     return (
-      <div className="p-6">
-        <div className="panel p-8 text-center max-w-md mx-auto">
-          <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-          <h2 className="text-base font-semibold text-gray-800 mb-1">Inscription introuvable</h2>
-          <p className="text-sm text-gray-500 mb-4">L'inscription demandee n'existe pas ou a ete supprimee.</p>
-          <button onClick={() => navigate('/registrations')} className="btn btn-primary">
-            Retour a la liste
-          </button>
+      <div className="p-6 max-w-2xl">
+        <div className="panel p-8 text-center" role="status">
+          <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
+          <p className="text-base font-medium text-emerald-800">
+            {isEditMode ? 'Inscription modifiée !' : 'Inscription enregistrée !'}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">Redirection...</p>
         </div>
       </div>
     );
@@ -268,216 +256,111 @@ const RegistrationForm: React.FC = () => {
 
   return (
     <div className="p-6 max-w-2xl">
-      {isSuccess ? (
-        <div className="panel p-8 text-center">
-          <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-          <p className="text-base font-medium text-emerald-700">
-            {isEditMode ? 'Inscription modifiee!' : 'Inscription enregistree!'}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">Redirection...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="panel">
-          <div className="p-4 space-y-4">
-            {/* Activity */}
-            <div>
-              <label htmlFor="activityId" className="block text-xs font-medium text-gray-600 mb-1">
-                Activite <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="activityId"
-                name="activityId"
-                value={formData.activityId}
-                onChange={handleChange}
-                className={`input-field ${errors.activityId ? 'has-error' : ''}`}
-              >
-                {activities.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}{a.eventDate ? ` — ${new Date(a.eventDate).toLocaleDateString('fr-FR')}` : ''}
-                  </option>
-                ))}
-              </select>
-              {errors.activityId && <p className="mt-0.5 text-xs text-red-500">{errors.activityId}</p>}
-            </div>
+      <form onSubmit={handleSubmit} className="panel" noValidate>
+        <div className="p-4 space-y-4">
+          <ActivityField
+            value={formData.activityId}
+            activities={selectableActivities}
+            error={errors.activityId}
+            hasLoadError={activitiesError}
+            onChange={handleChange}
+            onRetry={() => void loadActivities()}
+          />
 
-            {/* Row: Nom + Prenom */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="lastName" className="block text-xs font-medium text-gray-600 mb-1">
-                  Nom <span className="text-red-500">*</span>
-                </label>
-                <ContactAutocomplete
-                  value={formData.lastName}
-                  onChange={(v) => setFieldValue('lastName', v)}
-                  onSelect={fillFromContact}
-                  enabled={!isEditMode}
-                  inputProps={{
-                    type: 'text',
-                    id: 'lastName',
-                    name: 'lastName',
-                    className: `input-field ${errors.lastName ? 'has-error' : ''}`,
-                  }}
-                />
-                {errors.lastName && <p className="mt-0.5 text-xs text-red-500">{errors.lastName}</p>}
-              </div>
-              <div>
-                <label htmlFor="firstName" className="block text-xs font-medium text-gray-600 mb-1">
-                  Prenoms <span className="text-red-500">*</span>
-                </label>
-                <ContactAutocomplete
-                  value={formData.firstName}
-                  onChange={(v) => setFieldValue('firstName', v)}
-                  onSelect={fillFromContact}
-                  enabled={!isEditMode}
-                  inputProps={{
-                    type: 'text',
-                    id: 'firstName',
-                    name: 'firstName',
-                    className: `input-field ${errors.firstName ? 'has-error' : ''}`,
-                  }}
-                />
-                {errors.firstName && <p className="mt-0.5 text-xs text-red-500">{errors.firstName}</p>}
-              </div>
-            </div>
-
-            {/* Phone */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="phone" className="block text-xs font-medium text-gray-600 mb-1">
-                Telephone <span className="text-red-500">*</span>
+              <label htmlFor="lastName" className="block text-xs font-medium text-gray-700 mb-1">
+                Nom <span className="text-red-600" aria-hidden="true">*</span>
               </label>
               <ContactAutocomplete
-                value={formData.phone}
-                onChange={(v) => setFieldValue('phone', v)}
+                value={formData.lastName}
+                onChange={(v) => setFieldValue('lastName', v)}
                 onSelect={fillFromContact}
                 enabled={!isEditMode}
-                inputProps={{
-                  type: 'tel',
-                  id: 'phone',
-                  name: 'phone',
-                  placeholder: '07 07 07 07 07',
-                  className: `input-field ${errors.phone ? 'has-error' : ''}`,
-                }}
+                inputProps={contactInputProps('lastName', 'text')}
               />
-              {errors.phone && <p className="mt-0.5 text-xs text-red-500">{errors.phone}</p>}
+              <FieldError id="lastName-error" message={errors.lastName} />
             </div>
-
-            {/* Address */}
             <div>
-              <label htmlFor="address" className="block text-xs font-medium text-gray-600 mb-1">
-                Adresse <span className="text-red-500">*</span>
+              <label htmlFor="firstName" className="block text-xs font-medium text-gray-700 mb-1">
+                Prénoms <span className="text-red-600" aria-hidden="true">*</span>
               </label>
-              <textarea
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                rows={2}
-                className={`input-field resize-none ${errors.address ? 'has-error' : ''}`}
+              <ContactAutocomplete
+                value={formData.firstName}
+                onChange={(v) => setFieldValue('firstName', v)}
+                onSelect={fillFromContact}
+                enabled={!isEditMode}
+                inputProps={contactInputProps('firstName', 'text')}
               />
-              {errors.address && <p className="mt-0.5 text-xs text-red-500">{errors.address}</p>}
-            </div>
-
-            {/* Row: Date + Amount */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="registrationDate" className="block text-xs font-medium text-gray-600 mb-1">
-                  Date d'inscription <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="registrationDate"
-                  name="registrationDate"
-                  value={formData.registrationDate}
-                  onChange={handleChange}
-                  className={`input-field ${errors.registrationDate ? 'has-error' : ''}`}
-                />
-                {errors.registrationDate && <p className="mt-0.5 text-xs text-red-500">{errors.registrationDate}</p>}
-              </div>
-              <div>
-                <label htmlFor="amount" className="block text-xs font-medium text-gray-600 mb-1">
-                  Montant (F CFA) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="amount"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  min="0"
-                  step="any"
-                  placeholder="0"
-                  className={`input-field ${errors.amount ? 'has-error' : ''}`}
-                />
-                {errors.amount && <p className="mt-0.5 text-xs text-red-500">{errors.amount}</p>}
-              </div>
-            </div>
-
-            {/* Payment type */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">
-                Type de paiement <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="cash"
-                    checked={formData.paymentType === 'cash'}
-                    onChange={handleChange}
-                    className="h-3.5 w-3.5 text-blue-600 border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">Espece</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="wave"
-                    checked={formData.paymentType === 'wave'}
-                    onChange={handleChange}
-                    className="h-3.5 w-3.5 text-blue-600 border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">Wave</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="orange_money"
-                    checked={formData.paymentType === 'orange_money'}
-                    onChange={handleChange}
-                    className="h-3.5 w-3.5 text-blue-600 border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">Orange Money</span>
-                </label>
-              </div>
+              <FieldError id="firstName-error" message={errors.firstName} />
             </div>
           </div>
 
-          {/* Form actions toolbar */}
-          <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b">
-            <button
-              type="button"
-              onClick={() => navigate('/registrations')}
-              className="btn btn-default"
-            >
-              <X className="h-3.5 w-3.5" />
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`btn btn-primary ${isSubmitting ? 'opacity-60 pointer-events-none' : ''}`}
-            >
-              <Save className="h-3.5 w-3.5" />
-              {isSubmitting
-                ? isEditMode ? 'Mise a jour...' : 'Enregistrement...'
-                : isEditMode ? 'Mettre a jour' : 'Enregistrer'}
-            </button>
+          <div>
+            <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-1">
+              Téléphone <span className="text-red-600" aria-hidden="true">*</span>
+            </label>
+            <ContactAutocomplete
+              value={formData.phone}
+              onChange={(v) => setFieldValue('phone', v)}
+              onSelect={fillFromContact}
+              enabled={!isEditMode}
+              inputProps={{ ...contactInputProps('phone', 'tel', '07 07 07 07 07'), inputMode: 'tel' }}
+            />
+            <FieldError id="phone-error" message={errors.phone} />
           </div>
-        </form>
-      )}
+
+          <div>
+            <label htmlFor="address" className="block text-xs font-medium text-gray-700 mb-1">
+              Adresse <span className="text-red-600" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              rows={2}
+              className={inputClass('address', 'resize-none')}
+              {...fieldA11y('address', errors)}
+            />
+            <FieldError id="address-error" message={errors.address} />
+          </div>
+
+          <DateAmountFields
+            registrationDate={formData.registrationDate}
+            amount={formData.amount}
+            errors={errors}
+            onChange={handleChange}
+          />
+
+          <PaymentFieldset value={formData.paymentType} onChange={handleChange} />
+        </div>
+
+        {submitError && (
+          <div role="alert" className="mx-4 mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <span>{submitError}</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b">
+          <button type="button" onClick={() => navigate('/registrations')} className="btn btn-default">
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || activitiesError}
+            aria-busy={isSubmitting}
+            className="btn btn-primary disabled:opacity-60 disabled:pointer-events-none"
+          >
+            <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            {isSubmitting
+              ? isEditMode ? 'Mise à jour...' : 'Enregistrement...'
+              : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+          </button>
+        </div>
+      </form>
 
       <ConfirmModal
         open={duplicate !== null}
@@ -491,7 +374,7 @@ const RegistrationForm: React.FC = () => {
         cancelLabel="Annuler"
         variant="danger"
         onConfirm={handleConfirmDuplicate}
-        onCancel={() => setDuplicate(null)}
+        onCancel={handleCancelDuplicate}
       />
     </div>
   );

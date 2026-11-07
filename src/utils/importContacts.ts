@@ -1,5 +1,8 @@
 import * as XLSX from 'xlsx';
 import { ImportableContact } from './contacts';
+import { personKey } from './phone';
+import { readWorkbook } from './spreadsheet';
+import { MAX_IMPORT_FILE_BYTES, MAX_IMPORT_ROWS, normalizeHeader } from './importRegistrations';
 
 export interface ParsedContactRow {
   rowNumber: number;
@@ -16,13 +19,7 @@ export interface ContactParseResult {
   duplicates: ParsedContactRow[];
 }
 
-const normalize = (s: string): string =>
-  s.toString()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[\s_'`-]+/g, '')
-    .trim();
+const normalize = normalizeHeader;
 
 const COLUMN_ALIASES: Record<keyof ImportableContact, string[]> = {
   lastName: ['nom', 'lastname', 'last', 'surname'],
@@ -44,8 +41,7 @@ const findValue = (row: Record<string, unknown>, aliases: string[]): unknown => 
 
 const PHONE_DIGITS = /\d/g;
 
-const dupKey = (lastName: string, firstName: string, phone: string): string =>
-  `${normalize(lastName)}|${normalize(firstName)}|${phone.replace(/\D/g, '')}`;
+const dupKey = personKey;
 
 const validateRow = (
   raw: Record<string, unknown>,
@@ -91,8 +87,10 @@ const validateRow = (
 export const parseContactsFile = async (
   file: File
 ): Promise<Record<string, unknown>[]> => {
-  const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: false, raw: false });
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    throw new Error('Fichier trop volumineux (5 Mo maximum).');
+  }
+  const workbook = await readWorkbook(file);
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) return [];
   const sheet = workbook.Sheets[sheetName];
@@ -103,6 +101,9 @@ export const parseContactsFile = async (
   });
 
   if (rows.length === 0) return [];
+  if (rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(`Trop de lignes (${rows.length}) : ${MAX_IMPORT_ROWS} maximum par import.`);
+  }
 
   // If headers don't include any expected column, fallback to positional
   // mapping using the user's stated format: N | Nom | Prénom | Adresse | Téléphone

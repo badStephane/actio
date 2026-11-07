@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Actio : maquette saisie guichet (Lot 1), état « juste après un enregistrement »</title>
+<!-- Maquette statique de référence pour le Front. Autonome (pas de CDN, pas de police externe).
+     Les valeurs reprennent les tokens de docs/squad/02-design-ux.md section 2. Cadre : 1366 x 700 utiles. -->
+<style>
+  :root{
+    --brand-50:#EEF4FB; --brand-500:#4B85CD; --brand-600:#2563B8; --brand-700:#1E4F94; --brand-900:#192A49;
+    --ink:#111827; --ink-soft:#374151; --ink-muted:#4B5563; --app:#F3F4F6; --line:#D1D5DB; --subtle:#F9FAFB;
+    --cash:#047857; --cash-soft:#D1FAE5; --cash-ink:#065F46;
+    --wave:#0369A1; --wave-soft:#E0F2FE; --wave-ink:#075985;
+    --om:#C2410C;   --om-soft:#FFEDD5;   --om-ink:#9A3412;
+    --warning:#92400E; --warning-soft:#FFFBEB; --success-soft:#ECFDF5;
+    --r-control:6px; --r-card:8px; --shadow-card:0 1px 2px 0 rgb(17 24 39 / .06);
+  }
+  *{box-sizing:border-box} body{margin:0;font:14px/20px "Segoe UI",-apple-system,system-ui,sans-serif;color:var(--ink);background:#555}
+  .frame{width:1366px;height:700px;margin:16px auto;display:flex;background:var(--app);overflow:hidden}
+  .tab{font-variant-numeric:tabular-nums}
+  /* Sidebar (Lot 3 : marine du logo) */
+  aside{width:208px;background:var(--brand-900);color:#CBD5E1;display:flex;flex-direction:column}
+  .brand{display:flex;gap:8px;align-items:center;padding:16px;color:#fff;font-weight:600;border-bottom:1px solid rgb(255 255 255 / .08)}
+  .logo{width:24px;height:24px;border-radius:6px;background:#fff}
+  nav{padding:12px 8px;flex:1} .nav{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 12px;border-radius:6px;margin-bottom:2px}
+  .nav.active{background:rgb(255 255 255 / .10);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--brand-500)}
+  kbd{font:12px/16px inherit;border:1px solid rgb(255 255 255 / .25);border-radius:4px;padding:0 4px;color:#CBD5E1}
+  .foot{padding:12px 16px;font-size:12px;color:#94A3B8;border-top:1px solid rgb(255 255 255 / .08)}
+  main{flex:1;padding:20px 24px;overflow:auto}
+  h1{font-size:20px;line-height:28px;margin:0 0 16px;font-weight:600}
+  .cols{display:flex;gap:24px;align-items:flex-start}
+  .card{background:#fff;border:1px solid #E5E7EB;border-radius:var(--r-card);box-shadow:var(--shadow-card)}
+  form.card{width:720px}
+  .actbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #E5E7EB;background:var(--subtle);border-radius:8px 8px 0 0}
+  .actbar label{font-weight:600;color:var(--ink-soft)}
+  select,input{font:16px/24px inherit;color:var(--ink);height:44px;border:1px solid #6B7280;border-radius:var(--r-control);padding:0 12px;background:#fff;width:100%}
+  .actbar select{width:300px;height:40px}
+  .hint{font-size:12px;line-height:16px;color:var(--ink-muted)}
+  .body{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .f label{display:block;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
+  .req{color:#B91C1C}
+  .focus{outline:none;border-color:var(--brand-600);box-shadow:0 0 0 2px #fff,0 0 0 4px var(--brand-600)}
+  .row-pay{grid-column:1 / -1;display:flex;gap:16px;align-items:flex-end}
+  fieldset{border:0;margin:0;padding:0} legend{font-weight:600;color:var(--ink-soft);margin-bottom:4px;padding:0}
+  .seg{display:flex;gap:8px}
+  .opt{height:44px;min-width:124px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid #6B7280;border-radius:var(--r-control);background:#fff;font-weight:600;color:var(--ink)}
+  .opt .k{margin-left:auto;font-size:12px;color:var(--ink-muted);font-weight:400}
+  .opt.on.cash{background:var(--cash);border-color:var(--cash);color:#fff} .opt.on .k{color:#fff}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .amount{width:200px;position:relative} .amount input{text-align:right;padding-right:56px}
+  .amount .suf{position:absolute;right:12px;bottom:10px;color:var(--ink-muted)}
+  .dateline{grid-column:1 / -1;color:var(--ink-muted)} .link{color:var(--brand-600);font-weight:600;text-decoration:underline}
+  .ok{margin:0 16px 12px;display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid #6EE7B7;background:var(--success-soft);border-radius:var(--r-control);color:var(--cash-ink)}
+  .actions{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #E5E7EB;background:var(--subtle);border-radius:0 0 8px 8px}
+  .btn{height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 16px;border-radius:var(--r-control);font:600 14px/20px inherit;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--ink-soft)}
+  .btn.primary{background:var(--brand-600);border-color:var(--brand-700);color:#fff}
+  .btn.primary kbd{color:#fff;border-color:rgb(255 255 255 / .5)}
+  aside.session{width:340px} .session h2{font-size:14px;margin:0;padding:12px 16px;border-bottom:1px solid #E5E7EB}
+  .tot{padding:12px 16px;border-bottom:1px solid #E5E7EB} .tot b{font-size:24px;line-height:32px}
+  .modes{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:600;padding:2px 8px;border-radius:999px}
+  .b-cash{background:var(--cash-soft);color:var(--cash-ink)} .b-wave{background:var(--wave-soft);color:var(--wave-ink)} .b-om{background:var(--om-soft);color:var(--om-ink)}
+  ul{list-style:none;margin:0;padding:0} li{display:grid;grid-template-columns:44px 1fr auto;gap:8px;padding:8px 16px;border-bottom:1px solid #F3F4F6;align-items:center}
+  li .n{font-weight:600} li .m{text-align:right}
+  .more{padding:10px 16px}
+  .note{width:1366px;margin:0 auto 24px;color:#eee;font-size:13px}
+</style>
+</head>
+<body>
+<div class="frame">
+  <aside>
+    <div class="brand"><span class="logo" aria-hidden="true"></span>Actio</div>
+    <nav>
+      <div class="nav">Accueil</div>
+      <div class="nav active">Nouvelle inscription <kbd>Ctrl+N</kbd></div>
+      <div class="nav">Liste</div>
+      <div class="nav">Activités</div>
+      <div class="nav">Historique</div>
+    </nav>
+    <nav style="flex:0;border-top:1px solid rgb(255 255 255 / .08)">
+      <div class="nav">Mot de passe</div><div class="nav">Code de récupération</div>
+      <div class="nav">Préférences</div><div class="nav">Verrouiller</div>
+    </nav>
+    <div class="foot">Actio v2.1.0</div>
+  </aside>
+
+  <main>
+    <h1>Nouvelle inscription</h1>
+    <div class="cols">
+      <form class="card" aria-labelledby="t">
+        <div class="actbar">
+          <label for="act">Inscription pour</label>
+          <select id="act"><option>● Sortie Plage · 3 août 2026</option></select>
+          <span class="hint">Montant habituel : <b class="tab">2 500 F</b></span>
+        </div>
+
+        <div class="ok" role="status">
+          <span aria-hidden="true">✔</span>
+          <span>Inscription enregistrée : <b>DIOP Awa</b> · <b class="tab">2 500 F</b> · Wave.</span>
+          <a class="link" style="margin-left:auto" href="#">Modifier</a>
+        </div>
+
+        <div class="body">
+          <div class="f"><label for="n">Nom <span class="req" aria-hidden="true">*</span></label>
+            <input id="n" class="focus" placeholder="" aria-describedby="n-h"><div id="n-h" class="hint">Tapez 2 lettres ou des chiffres du téléphone pour retrouver un contact</div></div>
+          <div class="f"><label for="p">Prénoms <span class="req" aria-hidden="true">*</span></label><input id="p"></div>
+          <div class="f"><label for="t2">Téléphone <span class="req" aria-hidden="true">*</span></label><input id="t2" inputmode="tel"></div>
+          <div class="f"><label for="a">Adresse <span class="req" aria-hidden="true">*</span></label><input id="a"></div>
+
+          <div class="row-pay">
+            <fieldset>
+              <legend>Mode de paiement <span class="req" aria-hidden="true">*</span></legend>
+              <div class="seg" role="radiogroup">
+                <label class="opt on cash"><span aria-hidden="true">✔</span>Espèces<span class="k">1</span></label>
+                <label class="opt"><span class="dot" style="background:#0284C7" aria-hidden="true"></span>Wave<span class="k">2</span></label>
+                <label class="opt"><span class="dot" style="background:#EA580C" aria-hidden="true"></span>Orange Money<span class="k">3</span></label>
+              </div>
+            </fieldset>
+            <div class="f amount"><label for="m">Montant <span class="req" aria-hidden="true">*</span></label>
+              <input id="m" class="tab" value="2 500" inputmode="numeric"><span class="suf">F CFA</span></div>
+          </div>
+
+          <div class="dateline">Date d'inscription : <b>aujourd'hui, 07/11/2026</b> · <a class="link" href="#">Changer la date</a></div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn ghost">Effacer la saisie</button>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn">Voir la liste</button>
+            <button type="submit" class="btn primary">Enregistrer <kbd>Entrée</kbd></button>
+          </div>
+        </div>
+      </form>
+
+      <aside class="card session" aria-labelledby="s">
+        <h2 id="s">Saisies de cette session</h2>
+        <div class="tot"><b class="tab">6</b> inscriptions · <b class="tab" style="font-size:18px">15 000 F</b>
+          <div class="modes">
+            <span class="badge b-cash">Espèces 3 · 7 500 F</span>
+            <span class="badge b-wave">Wave 2 · 5 000 F</span>
+            <span class="badge b-om">Orange Money 1 · 2 500 F</span>
+          </div>
+        </div>
+        <ul>
+          <li><span class="hint tab">10:42</span><span><span class="n">DIOP Awa</span><br><span class="badge b-wave">Wave</span></span><span class="m tab">2 500 F<br><a class="link" href="#">Modifier</a></span></li>
+          <li><span class="hint tab">10:39</span><span><span class="n">OUÉDRAOGO Marie-Claire</span><br><span class="badge b-cash">Espèces</span></span><span class="m tab">2 500 F<br><a class="link" href="#">Modifier</a></span></li>
+          <li><span class="hint tab">10:35</span><span><span class="n">SOW Ibrahima</span><br><span class="badge b-om">Orange Money</span></span><span class="m tab">2 500 F<br><a class="link" href="#">Modifier</a></span></li>
+          <li><span class="hint tab">10:31</span><span><span class="n">KOUASSI Jean-Baptiste</span><br><span class="badge b-cash">Espèces</span></span><span class="m tab">2 500 F<br><a class="link" href="#">Modifier</a></span></li>
+          <li><span class="hint tab">10:28</span><span><span class="n">GUEYE Mariama</span><br><span class="badge b-wave">Wave</span></span><span class="m tab">2 500 F<br><a class="link" href="#">Modifier</a></span></li>
+        </ul>
+        <div class="more hint">et 1 plus ancienne · <a class="link" href="#">Voir la liste de Sortie Plage</a></div>
+      </aside>
+    </div>
+  </main>
+</div>
+<p class="note">État représenté : juste après un enregistrement. Le formulaire est vidé, l'activité, la date et le montant habituel sont conservés, le mode revient à Espèces, le focus est sur Nom (anneau 2 px). Les autres états (vide, chargement, erreur) sont décrits dans 02-design-ux.md, Lot 1.</p>
+</body>
+</html>

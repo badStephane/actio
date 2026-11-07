@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-auto-backups"
+description = "Enables the list_auto_backups command without any pre-configured scope."
+commands.allow = ["list_auto_backups"]
+
+[[permission]]
+identifier = "deny-list-auto-backups"
+description = "Denies the list_auto_backups command without any pre-configured scope."
+commands.deny = ["list_auto_backups"]

@@ -1,18 +1,42 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LifeBuoy, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { verifyRecoveryCode, setPassword } from '../utils/auth';
-
-const MIN_PASSWORD_LENGTH = 6;
+import {
+  verifyRecoveryCode,
+  updatePassword,
+  generateRecoveryCode,
+  MIN_PASSWORD_LENGTH,
+} from '../utils/auth';
+import { useRetryCountdown, formatWait } from './useRetryCountdown';
+import RecoveryCodeDisplay from './RecoveryCodeDisplay';
+import { errorMessage } from './uiFormat';
 
 interface RecoveryUnlockModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onLostCode: () => void;
 }
 
-type Step = 'code' | 'new-password';
+type Step = 'code' | 'new-password' | 'new-code';
 
-const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose, onSuccess }) => {
+const STEP_TITLE: Record<Step, string> = {
+  code: 'Code de récupération',
+  'new-password': 'Nouveau mot de passe',
+  'new-code': 'Nouveau code de récupération',
+};
+
+const ErrorBox: React.FC<{ message: string }> = ({ message }) => (
+  <div role="alert" className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+    <span>{message}</span>
+  </div>
+);
+
+/**
+ * Déverrouillage par code (D2) : le code est consommé, un nouveau mot de passe
+ * est obligatoire, puis un nouveau code est affiché une seule fois.
+ */
+const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose, onSuccess, onLostCode }) => {
   const [step, setStep] = useState<Step>('code');
   const [code, setCode] = useState('');
   const [pwd1, setPwd1] = useState('');
@@ -20,8 +44,13 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
   const [showPasswords, setShowPasswords] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [newCode, setNewCode] = useState<string | null>(null);
+  const [acknowledged, setAcknowledged] = useState(false);
   const codeInputRef = useRef<HTMLInputElement>(null);
   const pwdInputRef = useRef<HTMLInputElement>(null);
+  const { secondsLeft, isWaiting, start: startWait } = useRetryCountdown();
+  // Une fois le code consommé, on ne peut plus fermer sans finir.
+  const canClose = step === 'code' && !busy;
 
   useEffect(() => {
     if (!open) return;
@@ -31,54 +60,69 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
     setPwd2('');
     setError(null);
     setShowPasswords(false);
-    const t = setTimeout(() => codeInputRef.current?.focus(), 50);
-    return () => clearTimeout(t);
+    setNewCode(null);
+    setAcknowledged(false);
   }, [open]);
 
   useEffect(() => {
-    if (step === 'new-password') {
-      const t = setTimeout(() => pwdInputRef.current?.focus(), 50);
-      return () => clearTimeout(t);
-    }
-  }, [step]);
+    if (!open || busy || isWaiting) return;
+    const target = step === 'code' ? codeInputRef : step === 'new-password' ? pwdInputRef : null;
+    const t = setTimeout(() => target?.current?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [open, step, busy, isWaiting]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !canClose) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+  }, [open, onClose, canClose]);
 
   if (!open) return null;
 
+  const generateNewCode = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setNewCode(await generateRecoveryCode());
+    } catch (err) {
+      setError(errorMessage(err, 'Le nouveau code n\'a pas pu être créé.'));
+    }
+    setBusy(false);
+  };
+
   const handleCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!code.trim() || busy || isWaiting) return;
     setError(null);
-    if (!code.trim()) return;
     setBusy(true);
     try {
-      const ok = await verifyRecoveryCode(code);
-      if (ok) {
+      const result = await verifyRecoveryCode(code);
+      if (result.ok) {
         setStep('new-password');
       } else {
-        setError('Code de recuperation incorrect.');
         setCode('');
+        if (result.retryAfterMs > 0) {
+          startWait(result.retryAfterMs);
+          setError('Trop d\'essais incorrects. Patientez avant de réessayer.');
+        } else {
+          setError('Code de récupération incorrect.');
+        }
       }
     } catch (err) {
-      console.error('Error verifying recovery code:', err);
-      setError('Erreur lors de la verification.');
-    } finally {
-      setBusy(false);
+      setError(errorMessage(err, 'Erreur lors de la vérification.'));
     }
+    setBusy(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setError(null);
     if (pwd1.length < MIN_PASSWORD_LENGTH) {
-      setError(`Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caracteres.`);
+      setError(`Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`);
       return;
     }
     if (pwd1 !== pwd2) {
@@ -87,52 +131,51 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
     }
     setBusy(true);
     try {
-      await setPassword(pwd1);
-      onSuccess();
+      await updatePassword(pwd1);
+      setPwd1('');
+      setPwd2('');
+      setStep('new-code');
+      setBusy(false);
+      await generateNewCode();
     } catch (err) {
-      console.error('Error setting new password:', err);
-      setError('Erreur lors de l\'enregistrement du nouveau mot de passe.');
-    } finally {
+      setError(errorMessage(err, 'Le nouveau mot de passe n\'a pas pu être enregistré. Réessayez.'));
       setBusy(false);
     }
   };
 
+  const inputsLocked = busy || isWaiting;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
+      onClick={() => canClose && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="recovery-unlock-title"
     >
-      <div
-        className="panel shadow-xl max-w-sm w-full mx-4 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="panel shadow-xl max-w-sm w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <LifeBuoy className="h-4 w-4 text-blue-600" />
+            <LifeBuoy className="h-4 w-4 text-blue-600" aria-hidden="true" />
             <h3 id="recovery-unlock-title" className="text-sm font-semibold text-gray-800">
-              {step === 'code' ? 'Code de recuperation' : 'Nouveau mot de passe'}
+              {STEP_TITLE[step]}
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Fermer"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {canClose && (
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors" aria-label="Fermer">
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {step === 'code' ? (
+        {step === 'code' && (
           <form onSubmit={handleCodeSubmit} className="p-4 space-y-3">
-            <p className="text-xs text-gray-500">
-              Entrez le code de recuperation que vous avez configure pour debloquer l'acces.
+            <p className="text-xs text-gray-600">
+              Entrez votre code de récupération (format ABCD-EFGH-...). Il ne servira qu'une fois.
             </p>
             <div>
-              <label htmlFor="rec-code" className="block text-xs font-medium text-gray-600 mb-1">
-                Code de recuperation
+              <label htmlFor="rec-code" className="block text-xs font-medium text-gray-700 mb-1">
+                Code de récupération
               </label>
               <input
                 ref={codeInputRef}
@@ -141,38 +184,44 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 autoComplete="off"
-                className="input-field"
-                disabled={busy}
+                spellCheck={false}
+                className="input-field font-mono uppercase"
+                disabled={inputsLocked}
               />
             </div>
-
             {error && (
-              <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
+              <ErrorBox
+                message={isWaiting ? `${error} Nouvel essai possible dans ${formatWait(secondsLeft)}.` : error}
+              />
             )}
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
-              <button type="button" onClick={onClose} className="btn btn-default" disabled={busy}>
-                Annuler
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
+              <button type="button" onClick={onLostCode} className="text-xs text-gray-600 hover:text-gray-800 hover:underline">
+                Code perdu ?
               </button>
-              <button
-                type="submit"
-                disabled={busy || !code.trim()}
-                className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {busy ? 'Verification...' : 'Continuer'}
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={onClose} className="btn btn-default" disabled={busy}>
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={inputsLocked || !code.trim()}
+                  className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {busy ? 'Vérification...' : 'Continuer'}
+                </button>
+              </div>
             </div>
           </form>
-        ) : (
+        )}
+
+        {step === 'new-password' && (
           <form onSubmit={handlePasswordSubmit} className="p-4 space-y-3">
-            <p className="text-xs text-gray-500">
-              Code valide. Definissez un nouveau mot de passe.
+            <p className="text-xs text-gray-600">
+              Code accepté ; il est maintenant utilisé et ne fonctionnera plus. Définissez un nouveau
+              mot de passe (au moins {MIN_PASSWORD_LENGTH} caractères).
             </p>
             <div>
-              <label htmlFor="rec-new-pwd" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="rec-new-pwd" className="block text-xs font-medium text-gray-700 mb-1">
                 Nouveau mot de passe
               </label>
               <input
@@ -187,7 +236,7 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
               />
             </div>
             <div>
-              <label htmlFor="rec-new-pwd2" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="rec-new-pwd2" className="block text-xs font-medium text-gray-700 mb-1">
                 Confirmer
               </label>
               <input
@@ -200,27 +249,17 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
                 disabled={busy}
               />
             </div>
-
             <button
               type="button"
               onClick={() => setShowPasswords(s => !s)}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+              aria-pressed={showPasswords}
+              className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
             >
-              {showPasswords ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-              {showPasswords ? 'Masquer' : 'Afficher'}
+              {showPasswords ? <EyeOff className="h-3 w-3" aria-hidden="true" /> : <Eye className="h-3 w-3" aria-hidden="true" />}
+              {showPasswords ? 'Masquer' : 'Afficher'} les mots de passe
             </button>
-
-            {error && (
-              <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
-              <button type="button" onClick={onClose} className="btn btn-default" disabled={busy}>
-                Annuler
-              </button>
+            {error && <ErrorBox message={error} />}
+            <div className="flex justify-end pt-2 border-t border-gray-200">
               <button
                 type="submit"
                 disabled={busy || !pwd1 || !pwd2}
@@ -230,6 +269,46 @@ const RecoveryUnlockModal: React.FC<RecoveryUnlockModalProps> = ({ open, onClose
               </button>
             </div>
           </form>
+        )}
+
+        {step === 'new-code' && (
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-emerald-800 font-medium">Nouveau mot de passe enregistré.</p>
+            {busy && <p className="text-xs text-gray-600" aria-live="polite">Création du nouveau code...</p>}
+            {newCode && (
+              <RecoveryCodeDisplay code={newCode} acknowledged={acknowledged} onAcknowledgedChange={setAcknowledged} />
+            )}
+            {error && !newCode && (
+              <>
+                <ErrorBox message={error} />
+                <p className="text-xs text-gray-600">
+                  Vous pourrez créer un code plus tard depuis le menu « Code de récupération ».
+                </p>
+              </>
+            )}
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
+              {error && !newCode && (
+                <>
+                  <button type="button" onClick={generateNewCode} className="btn btn-default" disabled={busy}>
+                    Réessayer
+                  </button>
+                  <button type="button" onClick={onSuccess} className="btn btn-primary" disabled={busy}>
+                    Continuer sans code
+                  </button>
+                </>
+              )}
+              {newCode && (
+                <button
+                  type="button"
+                  onClick={onSuccess}
+                  disabled={!acknowledged}
+                  className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  Terminer
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

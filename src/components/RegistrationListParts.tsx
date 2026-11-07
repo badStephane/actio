@@ -1,0 +1,179 @@
+import React, { useMemo } from 'react';
+import { Users, CalendarDays, Layers } from 'lucide-react';
+import { Activity, Registration } from '../types';
+import { formatAmount } from './uiFormat';
+
+export const RegistrationListSkeleton: React.FC = () => (
+  <div className="h-full flex flex-col" aria-busy="true">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="panel px-3 py-2">
+          <div className="skeleton h-2.5 w-16 rounded mb-1.5" />
+          <div className="skeleton h-4 w-20 rounded" />
+        </div>
+      ))}
+    </div>
+    <div className="toolbar">
+      <div className="skeleton h-7 w-48 rounded" />
+      <div className="skeleton h-7 w-36 rounded" />
+      <div className="skeleton h-7 w-32 rounded" />
+      <div className="skeleton h-7 w-20 rounded ml-2" />
+      <div className="skeleton h-7 w-28 rounded" />
+    </div>
+    <div className="flex-1 overflow-hidden p-3 space-y-2">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="skeleton h-8 rounded" />
+      ))}
+    </div>
+    <span className="sr-only">Chargement des inscriptions...</span>
+  </div>
+);
+
+interface Totals {
+  count: number;
+  amount: number;
+}
+
+const sumTotals = (rows: Registration[]): Totals => ({
+  count: rows.length,
+  amount: rows.reduce((acc, r) => acc + r.amount, 0),
+});
+
+/** Bandeau de totaux, calculé sur les lignes affichées (filtres compris). */
+export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ rows }) => {
+  const stats = useMemo(() => ({
+    all: sumTotals(rows),
+    wave: sumTotals(rows.filter(r => r.paymentType === 'wave')),
+    orange: sumTotals(rows.filter(r => r.paymentType === 'orange_money')),
+    cash: sumTotals(rows.filter(r => r.paymentType === 'cash')),
+  }), [rows]);
+
+  if (stats.all.count === 0) return null;
+
+  const byPayment: { label: string; totals: Totals; border: string; text: string }[] = [
+    { label: 'Wave', totals: stats.wave, border: 'border-l-blue-400', text: 'text-blue-700' },
+    { label: 'Orange Money', totals: stats.orange, border: 'border-l-orange-400', text: 'text-orange-800' },
+    { label: 'Espèce', totals: stats.cash, border: 'border-l-emerald-400', text: 'text-emerald-800' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
+      <div className="panel px-3 py-2">
+        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Inscriptions</div>
+        <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{stats.all.count}</div>
+      </div>
+      <div className="panel px-3 py-2">
+        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Montant total</div>
+        <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{formatAmount(stats.all.amount)}</div>
+      </div>
+      {byPayment.map(p => (
+        <div key={p.label} className={`panel px-3 py-2 border-l-2 ${p.border}`}>
+          <div className={`text-[10px] font-medium uppercase tracking-wider ${p.text}`}>{p.label}</div>
+          <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">
+            {p.totals.count} <span className="text-xs font-normal text-gray-600">· {formatAmount(p.totals.amount)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+interface ActivityPickerProps {
+  activities: Activity[];
+  registrations: Registration[];
+  onSelect: (activityId: string) => void;
+}
+
+/** Écran de choix de la liste à consulter (toutes, ou une activité). */
+export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, registrations, onSelect }) => {
+  const totalsByActivity = useMemo(() => {
+    const map: Record<string, Totals> = {};
+    for (const r of registrations) {
+      const cur = map[r.activityId] ?? { count: 0, amount: 0 };
+      map[r.activityId] = { count: cur.count + 1, amount: cur.amount + r.amount };
+    }
+    return map;
+  }, [registrations]);
+  const globalTotals = useMemo(() => sumTotals(registrations), [registrations]);
+  const activeActivities = activities.filter(a => !a.archivedAt);
+  const archivedActivities = activities.filter(a => a.archivedAt);
+
+  const renderCard = (a: Activity) => {
+    const s = totalsByActivity[a.id] ?? { count: 0, amount: 0 };
+    const isArchived = !!a.archivedAt;
+    return (
+      <button
+        key={a.id}
+        type="button"
+        onClick={() => onSelect(a.id)}
+        className={`panel p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all duration-100 group ${isArchived ? 'opacity-80' : ''}`}
+      >
+        <div className="flex items-start gap-2 mb-2">
+          <span className="h-3 w-3 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: a.color }} aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700">{a.name}</h3>
+            {isArchived && (
+              <span className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Archivée</span>
+            )}
+          </div>
+        </div>
+        <TotalsLine totals={s} />
+        {a.eventDate && (
+          <div className="mt-1.5 text-[11px] text-gray-600 inline-flex items-center gap-1">
+            <CalendarDays className="h-3 w-3" aria-hidden="true" />
+            {new Date(a.eventDate).toLocaleDateString('fr-FR')}
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="p-6 max-w-5xl">
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-gray-800 mb-1">Sélectionnez une liste à consulter</h2>
+        <p className="text-xs text-gray-600">
+          Choisissez une activité pour afficher ses inscriptions, ou consultez toutes les inscriptions.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <button
+          type="button"
+          onClick={() => onSelect('')}
+          className="panel p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all duration-100 group border-l-2 border-l-blue-400"
+        >
+          <div className="flex items-start gap-2 mb-2">
+            <Layers className="h-3.5 w-3.5 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700">Toutes les inscriptions</h3>
+              <p className="text-[11px] text-gray-600 mt-0.5">Vue globale, toutes activités confondues</p>
+            </div>
+          </div>
+          <TotalsLine totals={globalTotals} />
+        </button>
+        {activeActivities.map(renderCard)}
+      </div>
+      {archivedActivities.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">
+            Archivées ({archivedActivities.length})
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {archivedActivities.map(renderCard)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TotalsLine: React.FC<{ totals: Totals }> = ({ totals }) => (
+  <div className="flex items-center justify-between text-xs">
+    <span className="inline-flex items-center gap-1 text-gray-700">
+      <Users className="h-3 w-3" aria-hidden="true" />
+      <span className="tabular-nums font-medium">{totals.count}</span>
+      <span className="text-gray-600">inscription{totals.count > 1 ? 's' : ''}</span>
+    </span>
+    <span className="text-gray-800 font-medium tabular-nums">{formatAmount(totals.amount)}</span>
+  </div>
+);

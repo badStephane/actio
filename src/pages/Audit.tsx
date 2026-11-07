@@ -1,8 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { History, Trash2, RefreshCw } from 'lucide-react';
 import { AuditEvent, EntityType, EventType, getAuditEvents, clearAuditLog } from '../utils/audit';
 import ConfirmModal from '../components/ConfirmModal';
-import Toast, { ToastVariant } from '../components/Toast';
+import Toast from '../components/Toast';
+import LoadError from '../components/LoadError';
+import { useToast } from '../components/useToast';
+import { errorMessage } from '../components/uiFormat';
+
+const AUDIT_LIMIT = 500;
 
 const EVENT_LABEL: Record<EventType, string> = {
   created: 'Créée',
@@ -10,19 +15,36 @@ const EVENT_LABEL: Record<EventType, string> = {
   deleted: 'Supprimée',
   archived: 'Archivée',
   unarchived: 'Réactivée',
+  imported: 'Import',
+  restored: 'Restauration',
+  backup_exported: 'Sauvegarde',
+  reset: 'Réinitialisation',
+  password_changed: 'Mot de passe modifié',
+  recovery_used: 'Code de récupération utilisé',
+  audit_cleared: 'Historique effacé',
 };
+
+const EVENT_ORDER = Object.keys(EVENT_LABEL) as EventType[];
 
 const EVENT_BADGE: Record<EventType, string> = {
   created: 'bg-emerald-100 text-emerald-700',
   updated: 'bg-blue-100 text-blue-700',
   deleted: 'bg-red-100 text-red-700',
-  archived: 'bg-amber-100 text-amber-700',
+  archived: 'bg-amber-100 text-amber-800',
   unarchived: 'bg-purple-100 text-purple-700',
+  imported: 'bg-sky-100 text-sky-800',
+  restored: 'bg-orange-100 text-orange-800',
+  backup_exported: 'bg-slate-100 text-slate-700',
+  reset: 'bg-red-100 text-red-800',
+  password_changed: 'bg-indigo-100 text-indigo-700',
+  recovery_used: 'bg-indigo-100 text-indigo-700',
+  audit_cleared: 'bg-gray-200 text-gray-800',
 };
 
 const ENTITY_LABEL: Record<EntityType, string> = {
   registration: 'Inscription',
   activity: 'Activité',
+  system: 'Système',
 };
 
 const formatDateTime = (ts: number): string =>
@@ -41,30 +63,25 @@ const Audit: React.FC = () => {
   const [filterEntity, setFilterEntity] = useState<EntityType | ''>('');
   const [search, setSearch] = useState('');
   const [clearOpen, setClearOpen] = useState(false);
-  const [toast, setToast] = useState<{ open: boolean; variant: ToastVariant; message: string }>({
-    open: false,
-    variant: 'success',
-    message: '',
-  });
+  const [loadError, setLoadError] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const { toast, showToast, closeToast } = useToast();
 
-  const showToast = (variant: ToastVariant, message: string) =>
-    setToast({ open: true, variant, message });
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
-      const data = await getAuditEvents(500);
-      setEvents(data);
-    } catch (error) {
-      console.error('Error loading audit log:', error);
+      setEvents(await getAuditEvents(AUDIT_LIMIT));
+    } catch {
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    load();
-  }, []);
+    void load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     let list = events;
@@ -78,14 +95,16 @@ const Audit: React.FC = () => {
   }, [events, filterEvent, filterEntity, search]);
 
   const handleClear = async () => {
-    setClearOpen(false);
+    setIsClearing(true);
     try {
       await clearAuditLog();
-      await load();
       showToast('success', 'Journal d\'historique effacé.');
+      await load();
     } catch (error) {
-      console.error('Error clearing audit log:', error);
-      showToast('error', 'Erreur lors de la suppression.');
+      showToast('error', errorMessage(error, 'Erreur lors de la suppression.'));
+    } finally {
+      setIsClearing(false);
+      setClearOpen(false);
     }
   };
 
@@ -108,6 +127,10 @@ const Audit: React.FC = () => {
     );
   }
 
+  if (loadError) {
+    return <LoadError message="Impossible de charger l'historique." onRetry={() => void load()} />;
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="toolbar flex-wrap">
@@ -118,11 +141,9 @@ const Audit: React.FC = () => {
           aria-label="Filtrer par type d'événement"
         >
           <option value="">Tous les événements</option>
-          <option value="created">Créées</option>
-          <option value="updated">Modifiées</option>
-          <option value="deleted">Supprimées</option>
-          <option value="archived">Archivées</option>
-          <option value="unarchived">Réactivées</option>
+          {EVENT_ORDER.map(type => (
+            <option key={type} value={type}>{EVENT_LABEL[type]}</option>
+          ))}
         </select>
 
         <select
@@ -134,6 +155,7 @@ const Audit: React.FC = () => {
           <option value="">Toutes les entités</option>
           <option value="registration">Inscriptions</option>
           <option value="activity">Activités</option>
+          <option value="system">Système</option>
         </select>
 
         <input
@@ -142,10 +164,10 @@ const Audit: React.FC = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input-field w-64 py-1"
-          aria-label="Rechercher"
+          aria-label="Rechercher dans l'historique"
         />
 
-        <button onClick={load} className="btn btn-default" title="Recharger">
+        <button onClick={() => void load()} className="btn btn-default" title="Recharger">
           <RefreshCw className="h-3.5 w-3.5" />
           Recharger
         </button>
@@ -159,8 +181,9 @@ const Audit: React.FC = () => {
           Effacer
         </button>
 
-        <span className="ml-auto text-xs text-gray-500">
+        <span className="ml-auto text-xs text-gray-600">
           {filtered.length} / {events.length} événement{events.length > 1 ? 's' : ''}
+          {events.length >= AUDIT_LIMIT && ` (${AUDIT_LIMIT} derniers événements)`}
         </span>
       </div>
 
@@ -189,11 +212,11 @@ const Audit: React.FC = () => {
                     {formatDateTime(e.createdAt)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${EVENT_BADGE[e.eventType]}`}>
-                      {EVENT_LABEL[e.eventType]}
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
+                      {EVENT_LABEL[e.eventType] ?? e.eventType}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{ENTITY_LABEL[e.entityType]}</td>
+                  <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{ENTITY_LABEL[e.entityType] ?? e.entityType}</td>
                   <td className="px-3 py-2 text-gray-900">{e.summary}</td>
                 </tr>
               ))}
@@ -205,8 +228,10 @@ const Audit: React.FC = () => {
       <ConfirmModal
         open={clearOpen}
         title="Effacer le journal d'historique"
-        message="Tous les événements enregistrés seront définitivement supprimés. Les inscriptions et activités ne seront pas affectées."
+        message="Tous les événements enregistrés seront supprimés ; un événement « Historique effacé » sera conservé. Les inscriptions et activités ne seront pas affectées."
         confirmLabel="Tout effacer"
+        busyLabel="Effacement..."
+        busy={isClearing}
         variant="danger"
         onConfirm={handleClear}
         onCancel={() => setClearOpen(false)}
@@ -216,7 +241,7 @@ const Audit: React.FC = () => {
         open={toast.open}
         variant={toast.variant}
         message={toast.message}
-        onClose={() => setToast(t => ({ ...t, open: false }))}
+        onClose={closeToast}
       />
     </div>
   );

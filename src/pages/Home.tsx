@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   PlusCircle,
@@ -7,35 +7,28 @@ import {
   Coins,
   CalendarClock,
   CalendarRange,
-  Clock,
   CalendarDays,
   Hourglass,
   BarChart3,
 } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { getActivities } from '../utils/activities';
+import { todayLocalIso } from '../utils/dates';
 import { Registration, Activity } from '../types';
+import LoadError from '../components/LoadError';
+import ImportReviewBanner from '../components/ImportReviewBanner';
+import { formatDateLong } from '../components/uiFormat';
+import {
+  KpiCard,
+  PaymentBreakdown,
+  PaymentBreakdownCard,
+  ActivityDetailsCard,
+  RecentRegistrationsCard,
+} from '../components/HomeSections';
+import { formatAmount } from '../components/uiFormat';
 
-const formatAmount = (amount: number): string =>
-  `${new Intl.NumberFormat('fr-FR').format(amount)} F`;
 
-const formatDateLong = (iso: string): string => {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(d);
-};
-
-const todayIso = (): string => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+const todayIso = (): string => todayLocalIso();
 
 const monthIsoPrefix = (): string => todayIso().slice(0, 7);
 
@@ -46,29 +39,6 @@ const daysBetween = (fromIso: string, toIso: string): number => {
   return Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
 };
 
-const PAYMENT_META: Record<
-  Registration['paymentType'],
-  { label: string; barClass: string; dotClass: string; textClass: string }
-> = {
-  wave: {
-    label: 'Wave',
-    barClass: 'bg-blue-500',
-    dotClass: 'bg-blue-500',
-    textClass: 'text-blue-700',
-  },
-  orange_money: {
-    label: 'Orange Money',
-    barClass: 'bg-orange-500',
-    dotClass: 'bg-orange-500',
-    textClass: 'text-orange-700',
-  },
-  cash: {
-    label: 'Espèce',
-    barClass: 'bg-emerald-500',
-    dotClass: 'bg-emerald-500',
-    textClass: 'text-emerald-700',
-  },
-};
 
 const STORAGE_KEY = 'home.currentActivityId';
 
@@ -86,12 +56,6 @@ const pickCurrentActivity = (activities: Activity[]): Activity | null => {
   return live.slice().sort((a, b) => b.createdAt - a.createdAt)[0];
 };
 
-interface PaymentBreakdown {
-  type: Registration['paymentType'];
-  count: number;
-  amount: number;
-  share: number;
-}
 
 interface DashboardData {
   registrations: Registration[];
@@ -100,43 +64,44 @@ interface DashboardData {
 
 const Home: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [currentActivityId, setCurrentActivityIdState] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY) ?? '';
   });
 
-  const setCurrentActivityId = (id: string) => {
+  const setCurrentActivityId = useCallback((id: string) => {
     if (id) localStorage.setItem(STORAGE_KEY, id);
     else localStorage.removeItem(STORAGE_KEY);
     setCurrentActivityIdState(id);
-  };
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoadError(false);
+    setData(null);
+    try {
+      const [registrations, activities] = await Promise.all([
+        getRegistrations(),
+        getActivities(true),
+      ]);
+      setData({ registrations, activities });
+      // Auto-pick current activity if none selected, or stored id is no
+      // longer valid (deleted, archived).
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const liveActivities = activities.filter(a => !a.archivedAt);
+      const isStoredValid = stored && liveActivities.some(a => a.id === stored);
+      if (!isStoredValid) {
+        const auto = pickCurrentActivity(activities);
+        if (auto) setCurrentActivityId(auto.id);
+      }
+    } catch {
+      // M3 : une erreur n'est jamais présentée comme « aucune activité ».
+      setLoadError(true);
+    }
+  }, [setCurrentActivityId]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [registrations, activities] = await Promise.all([
-          getRegistrations(),
-          getActivities(true),
-        ]);
-        if (cancelled) return;
-        setData({ registrations, activities });
-        // Auto-pick current activity if none selected, or stored id is no
-        // longer valid (deleted, archived).
-        const stored = localStorage.getItem(STORAGE_KEY);
-        const liveActivities = activities.filter(a => !a.archivedAt);
-        const isStoredValid = stored && liveActivities.some(a => a.id === stored);
-        if (!isStoredValid) {
-          const auto = pickCurrentActivity(activities);
-          if (auto) setCurrentActivityId(auto.id);
-        }
-      } catch {
-        if (!cancelled) setData({ registrations: [], activities: [] });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   const currentActivity = useMemo(() => {
     if (!data) return null;
@@ -199,6 +164,10 @@ const Home: React.FC = () => {
     };
   }, [data, currentActivity]);
 
+  if (loadError) {
+    return <LoadError message="Impossible de charger le tableau de bord." onRetry={() => void load()} />;
+  }
+
   if (data === null) {
     return (
       <div className="p-6 max-w-6xl">
@@ -240,12 +209,16 @@ const Home: React.FC = () => {
   }
 
   const isEmpty = !stats || stats.total === 0;
+  // m11 : la nouvelle inscription part avec l'activité affichée présélectionnée.
+  const addHref = currentActivity ? `/add?activity=${encodeURIComponent(currentActivity.id)}` : '/add';
   const daysToEvent = currentActivity?.eventDate
     ? daysBetween(todayIso(), currentActivity.eventDate)
     : null;
 
   return (
     <div className="p-6 max-w-6xl">
+      <ImportReviewBanner />
+
       {/* Activity selector header */}
       <div className="mb-4 panel px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -288,7 +261,7 @@ const Home: React.FC = () => {
               {liveActivities.map(a => (
                 <option key={a.id} value={a.id}>
                   {a.name}
-                  {a.eventDate ? ` — ${formatDateLong(a.eventDate)}` : ''}
+                  {a.eventDate ? ` · ${formatDateLong(a.eventDate)}` : ''}
                 </option>
               ))}
             </select>
@@ -344,7 +317,7 @@ const Home: React.FC = () => {
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <Link to="/add" className="btn btn-primary">
+        <Link to={addHref} className="btn btn-primary">
           <PlusCircle className="h-3.5 w-3.5" />
           Nouvelle inscription
         </Link>
@@ -363,171 +336,22 @@ const Home: React.FC = () => {
           <p className="text-xs text-gray-500 mb-4">
             Créez la première inscription pour cette activité.
           </p>
-          <Link to="/add" className="btn btn-primary">
+          <Link to={addHref} className="btn btn-primary">
             <PlusCircle className="h-3.5 w-3.5" />
             Créer une inscription
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {/* Payment breakdown */}
-          <section className="panel p-4 lg:col-span-1">
-            <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">
-              Modes de paiement
-            </h2>
+          <PaymentBreakdownCard breakdown={stats!.breakdown} />
 
-            {/* Stacked proportional bar */}
-            <div className="h-2 w-full rounded-full overflow-hidden bg-gray-100 flex mb-3">
-              {stats!.breakdown
-                .filter(b => b.count > 0)
-                .map(b => (
-                  <div
-                    key={b.type}
-                    className={`${PAYMENT_META[b.type].barClass} h-full`}
-                    style={{ width: `${b.share * 100}%` }}
-                    title={`${PAYMENT_META[b.type].label} : ${(b.share * 100).toFixed(1)}%`}
-                  />
-                ))}
-            </div>
+          <ActivityDetailsCard activity={currentActivity} daysToEvent={daysToEvent} />
 
-            <ul className="space-y-2">
-              {stats!.breakdown.map(b => (
-                <li key={b.type} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={`h-2 w-2 rounded-full shrink-0 ${PAYMENT_META[b.type].dotClass}`}
-                    />
-                    <span className={`font-medium truncate ${PAYMENT_META[b.type].textClass}`}>
-                      {PAYMENT_META[b.type].label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 tabular-nums">
-                    <span className="text-gray-500">
-                      {(b.share * 100).toFixed(0)}%
-                    </span>
-                    <span className="text-gray-900 font-semibold w-8 text-right">
-                      {b.count}
-                    </span>
-                    <span className="text-gray-500 w-20 text-right">
-                      {formatAmount(b.amount)}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Activity details */}
-          <section className="panel p-4 lg:col-span-1">
-            <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
-              Détails de l'activité
-            </h2>
-            {currentActivity && (
-              <dl className="space-y-2 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-gray-500">Nom</dt>
-                  <dd className="text-gray-900 font-medium truncate">{currentActivity.name}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-gray-500">Date d'événement</dt>
-                  <dd className="text-gray-900 tabular-nums">
-                    {currentActivity.eventDate ? formatDateLong(currentActivity.eventDate) : '—'}
-                  </dd>
-                </div>
-                {daysToEvent !== null && (
-                  <div className="flex items-center justify-between gap-2">
-                    <dt className="text-gray-500">Temps restant</dt>
-                    <dd className="text-gray-900 tabular-nums">
-                      {daysToEvent > 0 && `Dans ${daysToEvent} jour${daysToEvent > 1 ? 's' : ''}`}
-                      {daysToEvent === 0 && "C'est aujourd'hui !"}
-                      {daysToEvent < 0 && `Il y a ${-daysToEvent} jour${-daysToEvent > 1 ? 's' : ''}`}
-                    </dd>
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-gray-500">Montant par défaut</dt>
-                  <dd className="text-gray-900 tabular-nums">
-                    {currentActivity.defaultAmount && currentActivity.defaultAmount > 0
-                      ? formatAmount(currentActivity.defaultAmount)
-                      : '—'}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-gray-500">Couleur</dt>
-                  <dd className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block h-3 w-3 rounded-full"
-                      style={{ backgroundColor: currentActivity.color }}
-                    />
-                    <span className="text-gray-900 tabular-nums uppercase">
-                      {currentActivity.color}
-                    </span>
-                  </dd>
-                </div>
-              </dl>
-            )}
-          </section>
-
-          {/* Recent registrations */}
-          <section className="panel p-4 lg:col-span-1">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                Dernières inscriptions
-              </h2>
-              <Link
-                to="/registrations"
-                className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline"
-              >
-                Tout voir
-              </Link>
-            </div>
-            <ul className="divide-y divide-gray-100 -mx-1">
-              {stats!.recent.map(r => (
-                <li key={r.id} className="px-1 py-2 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-800 truncate">
-                      {r.lastName} {r.firstName}
-                    </p>
-                    <p className="text-[11px] text-gray-500 truncate">
-                      {formatDateLong(r.registrationDate)} · {PAYMENT_META[r.paymentType].label}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900 tabular-nums shrink-0">
-                    {formatAmount(r.amount)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <RecentRegistrationsCard recent={stats!.recent} />
         </div>
       )}
     </div>
   );
 };
-
-interface KpiCardProps {
-  icon: React.ReactNode;
-  iconClass: string;
-  label: string;
-  value: string;
-  hint?: string;
-}
-
-const KpiCard: React.FC<KpiCardProps> = ({ icon, iconClass, label, value, hint }) => (
-  <div className="panel p-4">
-    <div className="flex items-start justify-between gap-2 mb-2">
-      <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
-      <span
-        className={`inline-flex items-center justify-center h-7 w-7 rounded-full shrink-0 ${iconClass}`}
-      >
-        {icon}
-      </span>
-    </div>
-    <p className="text-2xl font-bold text-gray-900 tabular-nums leading-tight">{value}</p>
-    {hint && <p className="text-[11px] text-gray-500 tabular-nums mt-1">{hint}</p>}
-  </div>
-);
 
 export default Home;

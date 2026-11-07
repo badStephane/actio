@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Archive, ArchiveRestore, Trash2, CalendarDays, Users, Lock, FileUp, Download, BarChart3 } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
@@ -6,63 +6,60 @@ import {
   getActivities,
   archiveActivity,
   unarchiveActivity,
-  countRegistrationsForActivity,
+  countRegistrationsByActivity,
   deleteActivity,
 } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
 import { exportToExcel } from '../utils/excelExport';
 import ActivityFormModal from '../components/ActivityFormModal';
 import ConfirmModal from '../components/ConfirmModal';
-import Toast, { ToastVariant } from '../components/Toast';
+import Toast from '../components/Toast';
 import ImportRegistrationsModal from '../components/ImportRegistrationsModal';
+import LoadError from '../components/LoadError';
+import { useToast } from '../components/useToast';
+import { errorMessage, formatAmount } from '../components/uiFormat';
+import { todayLocalIso } from '../utils/dates';
 
 const slugify = (s: string): string =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-const formatAmount = (amount: number): string =>
-  `${new Intl.NumberFormat('fr-FR').format(amount)} F`;
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 const Activities: React.FC = () => {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [countsLoaded, setCountsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Activity | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Activity | null>(null);
   const [importTarget, setImportTarget] = useState<Activity | null>(null);
-  const [toast, setToast] = useState<{ open: boolean; variant: ToastVariant; message: string }>({
-    open: false,
-    variant: 'success',
-    message: '',
-  });
+  const { toast, showToast, closeToast } = useToast();
 
-  const showToast = (variant: ToastVariant, message: string) =>
-    setToast({ open: true, variant, message });
-
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
+    setLoadError(false);
+    // M3 : tant que les compteurs ne sont pas connus, aucun bouton Supprimer.
+    setCountsLoaded(false);
     try {
-      const list = await getActivities(true);
+      const [list, byActivity] = await Promise.all([
+        getActivities(true),
+        countRegistrationsByActivity(),
+      ]);
       setActivities(list);
-      const c: Record<string, number> = {};
-      await Promise.all(
-        list.map(async a => {
-          c[a.id] = await countRegistrationsForActivity(a.id);
-        })
-      );
-      setCounts(c);
-    } catch (error) {
-      console.error('Error loading activities:', error);
-      showToast('error', 'Erreur lors du chargement.');
+      setCounts(byActivity);
+      setCountsLoaded(true);
+    } catch {
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadActivities();
-  }, []);
+    void loadActivities();
+  }, [loadActivities]);
 
   const handleNew = () => {
     setEditingActivity(null);
@@ -77,7 +74,7 @@ const Activities: React.FC = () => {
   const handleSaved = () => {
     setFormOpen(false);
     setEditingActivity(null);
-    loadActivities();
+    void loadActivities();
     showToast('success', 'Activité enregistrée.');
   };
 
@@ -93,8 +90,7 @@ const Activities: React.FC = () => {
       }
       await loadActivities();
     } catch (error) {
-      console.error('Error toggling archive:', error);
-      showToast('error', 'Erreur lors de l\'opération.');
+      showToast('error', errorMessage(error, 'Erreur lors de l\'opération.'));
     } finally {
       setArchiveTarget(null);
     }
@@ -102,14 +98,16 @@ const Activities: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setIsDeleting(true);
     try {
       await deleteActivity(deleteTarget.id);
       showToast('success', 'Activité supprimée.');
       await loadActivities();
     } catch (error) {
-      console.error('Error deleting activity:', error);
-      showToast('error', 'Erreur lors de la suppression.');
+      // Ex. « Cette activité a encore des inscriptions : archivez-la plutôt. »
+      showToast('error', errorMessage(error, 'Erreur lors de la suppression.'));
     } finally {
+      setIsDeleting(false);
       setDeleteTarget(null);
     }
   };
@@ -122,22 +120,25 @@ const Activities: React.FC = () => {
         showToast('error', `Aucune inscription pour « ${activity.name} ».`);
         return;
       }
-      const today = new Date().toISOString().split('T')[0];
-      const filename = `${slugify(activity.name)}_${today}`;
+      const filename = `${slugify(activity.name)}_${todayLocalIso()}`;
       exportToExcel(forActivity, activities, filename);
       showToast('success', `${forActivity.length} inscription${forActivity.length > 1 ? 's' : ''} exportée${forActivity.length > 1 ? 's' : ''}.`);
     } catch (error) {
-      console.error('Error exporting activity:', error);
-      showToast('error', "Erreur lors de l'exportation.");
+      showToast('error', errorMessage(error, "Erreur lors de l'exportation."));
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64" aria-busy="true">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+        <span className="sr-only">Chargement des activités...</span>
       </div>
     );
+  }
+
+  if (loadError) {
+    return <LoadError message="Impossible de charger les activités." onRetry={() => void loadActivities()} />;
   }
 
   const active = activities.filter(a => !a.archivedAt);
@@ -147,6 +148,8 @@ const Activities: React.FC = () => {
     const count = counts[a.id] ?? 0;
     const isDefault = a.id === DEFAULT_ACTIVITY_ID;
     const isArchived = !!a.archivedAt;
+    // Une activité absente du GROUP BY n'a aucune inscription.
+    const canDelete = !isDefault && countsLoaded && count === 0;
     return (
       <div
         key={a.id}
@@ -233,12 +236,12 @@ const Activities: React.FC = () => {
                 : <Archive className="h-3.5 w-3.5" aria-hidden="true" />}
             </button>
           )}
-          {!isDefault && count === 0 && (
+          {canDelete && (
             <button
               onClick={() => setDeleteTarget(a)}
               aria-label={`Supprimer ${a.name}`}
               title="Supprimer"
-              className="p-1.5 rounded hover:bg-red-50 text-red-600"
+              className="p-1.5 rounded hover:bg-red-50 text-red-700"
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
@@ -250,8 +253,7 @@ const Activities: React.FC = () => {
 
   return (
     <div className="p-6 max-w-3xl">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-semibold text-gray-800">Activités</h1>
+      <div className="flex items-center justify-end mb-4">
         <button onClick={handleNew} className="btn btn-primary">
           <Plus className="h-3.5 w-3.5" />
           Nouvelle activité
@@ -308,6 +310,8 @@ const Activities: React.FC = () => {
         title="Supprimer l'activité"
         message={`« ${deleteTarget?.name} » sera définitivement supprimée. Cette action est irréversible.`}
         confirmLabel="Supprimer"
+        busyLabel="Suppression..."
+        busy={isDeleting}
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
@@ -319,7 +323,7 @@ const Activities: React.FC = () => {
         onClose={() => setImportTarget(null)}
         onImported={(count) => {
           showToast('success', `${count} inscription${count > 1 ? 's' : ''} importée${count > 1 ? 's' : ''} dans « ${importTarget?.name} ».`);
-          loadActivities();
+          void loadActivities();
         }}
       />
 
@@ -327,7 +331,7 @@ const Activities: React.FC = () => {
         open={toast.open}
         variant={toast.variant}
         message={toast.message}
-        onClose={() => setToast(t => ({ ...t, open: false }))}
+        onClose={closeToast}
       />
     </div>
   );

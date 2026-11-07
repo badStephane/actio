@@ -10,8 +10,8 @@ const DemoBanner: React.FC = () => {
   if (!DEMO_MODE) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
-      <FlaskConical className="h-3.5 w-3.5" />
+    <div className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-full bg-amber-700 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
+      <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
       Mode démonstration · données fictives
     </div>
   );

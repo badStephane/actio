@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ResponsiveContainer,
@@ -19,6 +19,7 @@ import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
+import LoadError from '../components/LoadError';
 
 const formatAmount = (amount: number): string =>
   `${new Intl.NumberFormat('fr-FR').format(Math.round(amount))} F`;
@@ -42,31 +43,32 @@ const ActivityStats: React.FC = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setLoadError(false);
+    setNotFound(false);
+    try {
+      const [a, all] = await Promise.all([getActivityById(id), getRegistrations()]);
+      if (!a) {
+        setNotFound(true);
+      } else {
+        setActivity(a);
+        setRegistrations(all.filter(r => r.activityId === id));
+      }
+    } catch {
+      // M3 : erreur de lecture distincte de « activité introuvable ».
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [a, all] = await Promise.all([getActivityById(id), getRegistrations()]);
-        if (cancelled) return;
-        if (!a) {
-          setNotFound(true);
-        } else {
-          setActivity(a);
-          setRegistrations(all.filter(r => r.activityId === id));
-        }
-      } catch (error) {
-        console.error('Error loading activity stats:', error);
-        if (!cancelled) setNotFound(true);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+    void load();
+  }, [load]);
 
   const stats = useMemo(() => {
     if (registrations.length === 0) return null;
@@ -131,6 +133,10 @@ const ActivityStats: React.FC = () => {
     );
   }
 
+  if (loadError) {
+    return <LoadError message="Impossible de charger les statistiques." onRetry={() => void load()} />;
+  }
+
   if (notFound || !activity) {
     return (
       <div className="p-6">
@@ -174,7 +180,7 @@ const ActivityStats: React.FC = () => {
 
       {!stats ? (
         <div className="panel p-8 text-center text-gray-500 text-sm">
-          Aucune inscription pour cette activité — les statistiques apparaîtront dès la première inscription.
+          Aucune inscription pour cette activité : les statistiques apparaîtront dès la première inscription.
         </div>
       ) : (
         <>

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Permissions minimales de la fenêtre principale",
   "windows": [
     "main"
   ],
@@ -19,22 +19,11 @@
       "identifier": "sql:allow-select",
       "allow": [{ "database": "sqlite:inscriptions.db" }]
     },
-    "dialog:allow-open",
-    "dialog:allow-save",
-    "fs:allow-read-file",
-    "fs:allow-write-file",
     "updater:default",
     "process:default",
-    {
-      "identifier": "fs:scope",
-      "allow": [
-        { "path": "$APPDATA/**" },
-        { "path": "$APPLOCALDATA/**" },
-        { "path": "$DOCUMENT/**" },
-        { "path": "$DESKTOP/**" },
-        { "path": "$DOWNLOAD/**" },
-        { "path": "$HOME/**" }
-      ]
-    }
+    "allow-export-database",
+    "allow-restore-database",
+    "allow-reset-app-data",
+    "allow-list-auto-backups"
   ]
 }

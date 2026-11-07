@@ -1,7 +1,20 @@
 import { Registration } from '../types';
 import { getDb } from './db';
-import { logEvent } from './audit';
+import { logEvent, logSystemEvent } from './audit';
 import { DEMO_MODE, demoRegistrations } from './demo';
+import { parseAmountXof } from './amount';
+import { isValidIsoDate } from './dates';
+import { personKey } from './phone';
+
+/** Règles appliquées à toute écriture, quel que soit l'écran (D1 : entier >= 0 ; date réelle). */
+const assertRegistration = (r: Pick<Registration, 'amount' | 'registrationDate'>): void => {
+  if (parseAmountXof(r.amount) === null) {
+    throw new Error('Montant invalide : entier positif ou nul, en francs CFA.');
+  }
+  if (!isValidIsoDate(r.registrationDate)) {
+    throw new Error("Date d'inscription invalide.");
+  }
+};
 
 const formatRegistrationSummary = (r: Pick<Registration, 'lastName' | 'firstName' | 'amount'>): string =>
   `${r.lastName} ${r.firstName} · ${new Intl.NumberFormat('fr-FR').format(r.amount)} F`;
@@ -54,6 +67,10 @@ export const getRegistrationById = async (id: string): Promise<Registration | nu
   return rows.length > 0 ? rowToRegistration(rows[0]) : null;
 };
 
+/**
+ * Doublon probable dans une activité (D9 : avertissement seulement) : même nom, même prénom
+ * (casse et accents ignorés) et même clé téléphone (9 derniers chiffres).
+ */
 export const findDuplicateRegistration = async (
   activityId: string,
   lastName: string,
@@ -61,45 +78,24 @@ export const findDuplicateRegistration = async (
   phone: string,
   excludeId?: string
 ): Promise<Registration | null> => {
+  const target = personKey(lastName, firstName, phone);
+  const isSame = (r: Registration): boolean =>
+    r.id !== excludeId && personKey(r.lastName, r.firstName, r.phone) === target;
   if (DEMO_MODE) {
-    const digits = phone.replace(/\D/g, '');
-    return (
-      demoRegistrations.find(
-        (r) =>
-          r.activityId === activityId &&
-          r.lastName.trim().toLowerCase() === lastName.trim().toLowerCase() &&
-          r.firstName.trim().toLowerCase() === firstName.trim().toLowerCase() &&
-          r.phone.replace(/\D/g, '').includes(digits) &&
-          r.id !== excludeId
-      ) ?? null
-    );
+    return demoRegistrations.find((r) => r.activityId === activityId && isSame(r)) ?? null;
   }
   const db = await getDb();
-  const phoneDigits = phone.replace(/\D/g, '');
-  const sql = excludeId
-    ? `SELECT ${COLUMNS} FROM registrations
-         WHERE activity_id = $1
-           AND LOWER(TRIM(last_name)) = LOWER(TRIM($2))
-           AND LOWER(TRIM(first_name)) = LOWER(TRIM($3))
-           AND REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE $4
-           AND id != $5
-         LIMIT 1`
-    : `SELECT ${COLUMNS} FROM registrations
-         WHERE activity_id = $1
-           AND LOWER(TRIM(last_name)) = LOWER(TRIM($2))
-           AND LOWER(TRIM(first_name)) = LOWER(TRIM($3))
-           AND REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE $4
-         LIMIT 1`;
-  const params = excludeId
-    ? [activityId, lastName, firstName, `%${phoneDigits}%`, excludeId]
-    : [activityId, lastName, firstName, `%${phoneDigits}%`];
-  const rows = await db.select<Row[]>(sql, params);
-  return rows.length > 0 ? rowToRegistration(rows[0]) : null;
+  const rows = await db.select<Row[]>(
+    `SELECT ${COLUMNS} FROM registrations WHERE activity_id = $1`,
+    [activityId]
+  );
+  return rows.map(rowToRegistration).find(isSame) ?? null;
 };
 
 export const addRegistration = async (
   registration: Omit<Registration, 'id' | 'createdAt'>
 ): Promise<Registration> => {
+  assertRegistration(registration);
   const newRegistration: Registration = {
     ...registration,
     id: crypto.randomUUID(),
@@ -133,6 +129,7 @@ export const addRegistration = async (
 export const updateRegistration = async (
   registration: Omit<Registration, 'createdAt'>
 ): Promise<void> => {
+  assertRegistration(registration);
   if (DEMO_MODE) {
     const i = demoRegistrations.findIndex((r) => r.id === registration.id);
     if (i !== -1) demoRegistrations[i] = { ...demoRegistrations[i], ...registration };
@@ -182,73 +179,53 @@ export const deleteRegistration = async (id: string): Promise<void> => {
   }
 };
 
-const REGISTRATION_BATCH_SIZE = 200;
+/**
+ * Import en masse ATOMIQUE : une seule instruction INSERT ... SELECT FROM json_each($1).
+ * En SQLite une instruction s'exécute dans sa propre transaction implicite : si une ligne viole
+ * une contrainte (montant, clé étrangère...), aucune ligne n'est insérée. Contrairement à
+ * BEGIN / INSERT / COMMIT envoyés séparément, cela ne dépend pas de la connexion du pool
+ * sqlx qui exécute chaque appel.
+ */
+const BULK_INSERT_SQL = `INSERT INTO registrations (${COLUMNS})
+  SELECT json_extract(value, '$.id'), json_extract(value, '$.firstName'), json_extract(value, '$.lastName'),
+         json_extract(value, '$.phone'), json_extract(value, '$.address'), json_extract(value, '$.registrationDate'),
+         json_extract(value, '$.paymentType'), json_extract(value, '$.amount'), json_extract(value, '$.activityId'),
+         json_extract(value, '$.createdAt')
+  FROM json_each($1)`;
+
+const importSummary = (regs: Registration[]): { count: number; totalAmount: number; activityIds: string[] } => ({
+  count: regs.length,
+  totalAmount: regs.reduce((sum, r) => sum + r.amount, 0),
+  activityIds: [...new Set(regs.map((r) => r.activityId))],
+});
 
 export const addRegistrationsBulk = async (
   registrations: Omit<Registration, 'id' | 'createdAt'>[]
 ): Promise<Registration[]> => {
   if (registrations.length === 0) return [];
+  registrations.forEach(assertRegistration);
+  const now = Date.now();
+  const inserted: Registration[] = registrations.map((reg) => ({
+    ...reg,
+    id: crypto.randomUUID(),
+    createdAt: now,
+  }));
+  const summary = importSummary(inserted);
+  const label = `Import de ${summary.count} inscription(s) · ${new Intl.NumberFormat('fr-FR').format(summary.totalAmount)} F`;
   if (DEMO_MODE) {
-    const inserted = registrations.map((reg) => ({
-      ...reg,
-      id: crypto.randomUUID(),
-      createdAt: Date.now(),
-    }));
     demoRegistrations.push(...inserted);
-    for (const reg of inserted) {
-      await logEvent('created', 'registration', reg.id, formatRegistrationSummary(reg));
-    }
+    await logSystemEvent('imported', label, summary);
     return inserted;
   }
   const db = await getDb();
-  const now = Date.now();
-  const inserted: Registration[] = [];
-
-  for (let start = 0; start < registrations.length; start += REGISTRATION_BATCH_SIZE) {
-    const batch = registrations.slice(start, start + REGISTRATION_BATCH_SIZE);
-    const placeholders: string[] = [];
-    const params: unknown[] = [];
-    const newRegs: Registration[] = [];
-    let p = 1;
-    for (const reg of batch) {
-      const newReg: Registration = {
-        ...reg,
-        id: crypto.randomUUID(),
-        createdAt: now,
-      };
-      newRegs.push(newReg);
-      placeholders.push(
-        `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++})`
-      );
-      params.push(
-        newReg.id,
-        newReg.firstName,
-        newReg.lastName,
-        newReg.phone,
-        newReg.address,
-        newReg.registrationDate,
-        newReg.paymentType,
-        newReg.amount,
-        newReg.activityId,
-        newReg.createdAt
-      );
-    }
-    try {
-      await db.execute(
-        `INSERT INTO registrations (${COLUMNS}) VALUES ${placeholders.join(', ')}`,
-        params
-      );
-      inserted.push(...newRegs);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Lot ${start + 1}-${start + batch.length} — ${msg}`
-      );
-    }
-  }
-
-  for (const reg of inserted) {
-    await logEvent('created', 'registration', reg.id, formatRegistrationSummary(reg));
+  await db.execute(BULK_INSERT_SQL, [JSON.stringify(inserted)]);
+  try {
+    await logSystemEvent('imported', label, summary);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Les ${summary.count} inscriptions ont bien été importées, mais l'historique n'a pas pu être écrit (${msg}). Ne relancez pas l'import.`
+    );
   }
   return inserted;
 };

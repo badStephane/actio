@@ -1,8 +1,21 @@
+mod backup;
+mod commands;
+#[cfg(test)]
+mod migration_tests;
+mod schema;
+
 use tauri_plugin_sql::{Migration, MigrationKind};
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-  let migrations = vec![
+/// URL de la base telle que la voit tauri-plugin-sql (fichier dans `app_config_dir`).
+pub const DB_URL: &str = "sqlite:inscriptions.db";
+/// Nom du fichier de base dans `app_config_dir`.
+pub const DB_FILE_NAME: &str = "inscriptions.db";
+
+/// Liste complète des migrations, dans l'ordre.
+/// Les versions 1 à 9 sont livrées sur les postes : leur texte SQL ne doit JAMAIS changer
+/// (sqlx compare une somme SHA-384 du SQL et refuse de démarrer si elle diffère).
+pub fn migrations() -> Vec<Migration> {
+  vec![
     Migration {
       version: 1,
       description: "create_registrations_table",
@@ -120,28 +133,79 @@ pub fn run() {
             CREATE INDEX IF NOT EXISTS contacts_phone_idx ON contacts (phone);",
       kind: MigrationKind::Up,
     },
-  ];
+    Migration {
+      version: 10,
+      description: "audit_events_system_types_and_immutability",
+      sql: schema::MIGRATION_10_AUDIT,
+      kind: MigrationKind::Up,
+    },
+    Migration {
+      version: 11,
+      description: "registrations_integer_amount_and_activity_fk",
+      sql: schema::MIGRATION_11_REGISTRATIONS,
+      kind: MigrationKind::Up,
+    },
+    Migration {
+      version: 12,
+      description: "auth_failed_attempts_backoff",
+      sql: schema::MIGRATION_12_AUTH_BACKOFF,
+      kind: MigrationKind::Up,
+    },
+  ]
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
 
   tauri::Builder::default()
+    .plugin(log_plugin())
     .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_fs::init())
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .plugin(
       tauri_plugin_sql::Builder::default()
-        .add_migrations("sqlite:inscriptions.db", migrations)
+        .add_migrations(DB_URL, migrations())
         .build(),
     )
+    .invoke_handler(tauri::generate_handler![
+      commands::export_database,
+      commands::restore_database,
+      commands::reset_app_data,
+      commands::list_auto_backups,
+    ])
     .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
+      // La base n'est pas préchargée : le front l'ouvre (et la migre) après ce hook.
+      // La copie de sécurité précède donc toute migration.
+      if let Err(e) = backup::startup_backup(app.handle()) {
+        log::error!("sauvegarde automatique au démarrage impossible : {e}");
       }
       Ok(())
     })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
+}
+
+/// Journal fichier : niveau Info en debug (console + fichier), Warn en release,
+/// dans le dossier de logs de l'app, 3 fichiers de 1 Mo maximum.
+fn log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+  use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
+  const LOG_MAX_FILE_BYTES: u128 = 1_000_000;
+  const LOG_KEEP_FILES: usize = 3;
+  let level = if cfg!(debug_assertions) {
+    log::LevelFilter::Info
+  } else {
+    log::LevelFilter::Warn
+  };
+  let mut targets = vec![Target::new(TargetKind::LogDir {
+    file_name: Some("actio".into()),
+  })];
+  if cfg!(debug_assertions) {
+    targets.push(Target::new(TargetKind::Stdout));
+  }
+  tauri_plugin_log::Builder::default()
+    .targets(targets)
+    .level(level)
+    .max_file_size(LOG_MAX_FILE_BYTES)
+    .rotation_strategy(RotationStrategy::KeepSome(LOG_KEEP_FILES))
+    .build()
 }

@@ -1,0 +1,87 @@
+# Publication explicite d'un brouillon de release, APRÈS le smoke test Windows (docs/RELEASE.md).
+# Lancement : gh workflow run publish-release.yml -f tag=vX.Y.Z  (ou onglet Actions > Run workflow).
+# Revalide le brouillon, publie (pre-release si le tag contient « - »), puis vérifie que
+# l'endpoint updater sert bien la nouvelle version.
+name: Publier une release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag du brouillon à publier (ex. v2.1.0 ou v2.1.0-rc.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    name: Publier ${{ inputs.tag }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Revalider le brouillon
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::tag invalide : $TAG"; exit 1; }
+          [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = "true" ] \
+            || { echo "::error::$TAG n'est pas un brouillon (déjà publiée ?)"; exit 1; }
+          gh release download "$TAG" --pattern latest.json --dir . --clobber
+          VERSION="${TAG#v}"
+          BASE="https://github.com/$GH_REPO/releases/download/$TAG/"
+          jq -e --arg v "$VERSION" --arg base "$BASE" '
+            .version == $v and
+            ([.platforms[] | select((.url | startswith($base)) and (.signature | length > 0))] | length == 3)' \
+            latest.json > /dev/null || { echo "::error::latest.json du brouillon invalide"; exit 1; }
+          NAMES=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          for URL in $(jq -r '.platforms[].url' latest.json); do
+            grep -qxF "$(basename "$URL")" <<< "$NAMES" || { echo "::error::asset $(basename "$URL") absent"; exit 1; }
+          done
+          CURRENT=$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)
+          HIGHEST=$(printf '%s\n%s\n' "${CURRENT#v}" "${VERSION%%-*}" | sort -V | tail -n1)
+          if [ "$HIGHEST" != "${VERSION%%-*}" ] || [ "${CURRENT#v}" = "$VERSION" ]; then
+            echo "::error::$TAG n'est pas supérieur à la release publiée $CURRENT"; exit 1
+          fi
+          echo "Brouillon $TAG valide (release actuelle : $CURRENT)."
+
+      - name: Publier
+        run: |
+          set -euo pipefail
+          if [[ "$TAG" == *-* ]]; then
+            gh release edit "$TAG" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --draft=false --latest
+          fi
+
+      - name: Vérifier l'endpoint updater (stable seulement)
+        if: ${{ !contains(inputs.tag, '-') }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          for ENDPOINT in \
+            "https://github.com/$GH_REPO/releases/latest/download/latest.json" \
+            "https://github.com/badStephane/Gestion_Inscription/releases/latest/download/latest.json"; do
+            for ATTEMPT in 1 2 3 4 5 6; do
+              SERVED=$(curl -fsSL "$ENDPOINT" | jq -r .version || true)
+              [ "$SERVED" = "$VERSION" ] && break
+              echo "Tentative $ATTEMPT : $ENDPOINT sert '$SERVED', attente 20 s."
+              sleep 20
+            done
+            [ "$SERVED" = "$VERSION" ] || { echo "::error::$ENDPOINT ne sert pas $VERSION : voir le rollback de docs/RELEASE.md"; exit 1; }
+            echo "OK : $ENDPOINT sert $VERSION."
+          done

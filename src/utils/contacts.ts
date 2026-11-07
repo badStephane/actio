@@ -1,4 +1,6 @@
 import { getDb } from './db';
+import { DEMO_MODE, demoContacts } from './demo';
+import { nameKey, personKey } from './phone';
 
 export interface Contact {
   id: string;
@@ -39,9 +41,30 @@ const escapeLike = (s: string): string =>
 
 const normalizePhone = (s: string): string => s.replace(/\D/g, '');
 
+const MIN_PHONE_TOKEN_DIGITS = 3;
+
+const matchesToken = (c: Contact, token: string): boolean => {
+  const digits = normalizePhone(token);
+  return (
+    nameKey(c.lastName).startsWith(nameKey(token)) ||
+    nameKey(c.firstName).startsWith(nameKey(token)) ||
+    (digits.length >= MIN_PHONE_TOKEN_DIGITS && normalizePhone(c.phone).includes(digits))
+  );
+};
+
+const byName = (a: Contact, b: Contact): number =>
+  a.lastName.localeCompare(b.lastName, 'fr') || a.firstName.localeCompare(b.firstName, 'fr');
+
 export const searchContacts = async (query: string, limit = 8): Promise<Contact[]> => {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
+  if (DEMO_MODE) {
+    const tokens = trimmed.split(/\s+/).filter(Boolean);
+    return demoContacts
+      .filter((c) => tokens.every((t) => matchesToken(c, t)))
+      .sort(byName)
+      .slice(0, Math.max(1, Math.min(50, limit)));
+  }
 
   const db = await getDb();
   const tokens = trimmed
@@ -62,7 +85,7 @@ export const searchContacts = async (query: string, limit = 8): Promise<Contact[
       `LOWER(first_name) LIKE ? ESCAPE '\\'`,
     ];
     params.push(`${escaped}%`, `${escaped}%`);
-    if (digits.length >= 3) {
+    if (digits.length >= MIN_PHONE_TOKEN_DIGITS) {
       orParts.push(
         `REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', '') LIKE ?`
       );
@@ -82,85 +105,78 @@ export const searchContacts = async (query: string, limit = 8): Promise<Contact[
   return rows.map(rowToContact);
 };
 
+/** Clés de doublon (nom, prénom, 9 derniers chiffres du téléphone : D9) des contacts existants. */
 export const getAllContactDedupKeys = async (): Promise<Set<string>> => {
+  if (DEMO_MODE) return new Set(demoContacts.map((c) => personKey(c.lastName, c.firstName, c.phone)));
   const db = await getDb();
   const rows = await db.select<{ last_name: string; first_name: string; phone: string }[]>(
     'SELECT last_name, first_name, phone FROM contacts'
   );
-  const norm = (s: string) =>
-    s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[\s_'`-]+/g, '').trim();
-  return new Set(
-    rows.map(r => `${norm(r.last_name)}|${norm(r.first_name)}|${r.phone.replace(/\D/g, '')}`)
-  );
+  return new Set(rows.map((r) => personKey(r.last_name, r.first_name, r.phone)));
 };
 
 export const countContacts = async (): Promise<number> => {
+  if (DEMO_MODE) return demoContacts.length;
   const db = await getDb();
   const rows = await db.select<{ n: number }[]>('SELECT COUNT(*) as n FROM contacts');
   return rows[0]?.n ?? 0;
 };
 
+const NO_SOURCE_LABEL = '(sans source)';
+
 export const listSources = async (): Promise<{ source: string; count: number }[]> => {
+  if (DEMO_MODE) {
+    const counts = demoContacts.reduce<Record<string, number>>(
+      (acc, c) => ({ ...acc, [c.source ?? NO_SOURCE_LABEL]: (acc[c.source ?? NO_SOURCE_LABEL] ?? 0) + 1 }),
+      {}
+    );
+    return Object.entries(counts).map(([source, count]) => ({ source, count }));
+  }
   const db = await getDb();
   const rows = await db.select<{ source: string | null; n: number }[]>(
     `SELECT source, COUNT(*) as n FROM contacts GROUP BY source ORDER BY MAX(created_at) DESC`
   );
-  return rows.map(r => ({ source: r.source ?? '(sans source)', count: r.n }));
+  return rows.map(r => ({ source: r.source ?? NO_SOURCE_LABEL, count: r.n }));
 };
 
-const CONTACT_BATCH_SIZE = 200;
+/** Import atomique (une seule instruction INSERT ... SELECT FROM json_each, voir storage.ts). */
+const BULK_INSERT_SQL = `INSERT INTO contacts (${COLUMNS})
+  SELECT json_extract(value, '$.id'), json_extract(value, '$.lastName'), json_extract(value, '$.firstName'),
+         json_extract(value, '$.phone'), json_extract(value, '$.address'), json_extract(value, '$.source'),
+         json_extract(value, '$.createdAt')
+  FROM json_each($1)`;
 
 export const addContactsBulk = async (
   contacts: ImportableContact[]
 ): Promise<number> => {
   if (contacts.length === 0) return 0;
-  const db = await getDb();
   const now = Date.now();
-  let inserted = 0;
-
-  for (let start = 0; start < contacts.length; start += CONTACT_BATCH_SIZE) {
-    const batch = contacts.slice(start, start + CONTACT_BATCH_SIZE);
-    const placeholders: string[] = [];
-    const params: unknown[] = [];
-    let p = 1;
-    for (const c of batch) {
-      placeholders.push(
-        `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++})`
-      );
-      params.push(
-        crypto.randomUUID(),
-        c.lastName,
-        c.firstName,
-        c.phone,
-        c.address,
-        c.source ?? null,
-        now
-      );
-    }
-    try {
-      await db.execute(
-        `INSERT INTO contacts (${COLUMNS}) VALUES ${placeholders.join(', ')}`,
-        params
-      );
-      inserted += batch.length;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Lot ${start + 1}-${start + batch.length} — ${msg}`
-      );
-    }
+  const rows: Contact[] = contacts.map((c) => ({ ...c, id: crypto.randomUUID(), createdAt: now }));
+  if (DEMO_MODE) {
+    demoContacts.push(...rows);
+    return rows.length;
   }
-
-  return inserted;
+  const db = await getDb();
+  await db.execute(BULK_INSERT_SQL, [JSON.stringify(rows.map((r) => ({ ...r, source: r.source ?? null })))]);
+  return rows.length;
 };
 
+const matchesSource = (c: Contact, source?: string): boolean =>
+  source === undefined || (source === NO_SOURCE_LABEL ? c.source === undefined : c.source === source);
+
 export const clearContacts = async (source?: string): Promise<number> => {
+  if (DEMO_MODE) {
+    const kept = demoContacts.filter((c) => !matchesSource(c, source));
+    const removed = demoContacts.length - kept.length;
+    demoContacts.splice(0, demoContacts.length, ...kept);
+    return removed;
+  }
   const db = await getDb();
-  if (source && source !== '(sans source)') {
+  if (source && source !== NO_SOURCE_LABEL) {
     const result = await db.execute('DELETE FROM contacts WHERE source = $1', [source]);
     return result.rowsAffected;
   }
-  if (source === '(sans source)') {
+  if (source === NO_SOURCE_LABEL) {
     const result = await db.execute('DELETE FROM contacts WHERE source IS NULL');
     return result.rowsAffected;
   }
