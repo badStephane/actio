@@ -115,6 +115,26 @@ export const getAllContactDedupKeys = async (): Promise<Set<string>> => {
   return new Set(rows.map((r) => personKey(r.last_name, r.first_name, r.phone)));
 };
 
+/** Contact réduit aux champs utiles pour retrouver une adresse (D19). */
+export type ContactForMatching = Pick<Contact, 'lastName' | 'firstName' | 'phone' | 'address'>;
+
+/**
+ * Tous les contacts qui ont une adresse, en UNE lecture (QA-UX-03) : l'appelant les indexe en
+ * mémoire par `personKey` au lieu de lancer une recherche par ligne importée.
+ */
+export const getAllContactsForMatching = async (): Promise<ContactForMatching[]> => {
+  if (DEMO_MODE) {
+    return demoContacts
+      .filter((c) => c.address.trim() !== '')
+      .map(({ lastName, firstName, phone, address }) => ({ lastName, firstName, phone, address }));
+  }
+  const db = await getDb();
+  const rows = await db.select<{ last_name: string; first_name: string; phone: string; address: string }[]>(
+    "SELECT last_name, first_name, phone, address FROM contacts WHERE TRIM(address) <> ''"
+  );
+  return rows.map((r) => ({ lastName: r.last_name, firstName: r.first_name, phone: r.phone, address: r.address }));
+};
+
 export const countContacts = async (): Promise<number> => {
   if (DEMO_MODE) return demoContacts.length;
   const db = await getDb();

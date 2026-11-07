@@ -83,7 +83,7 @@ describe('paymentMeta : source unique des modes (U6, U21, U24)', () => {
     const hexes = PAYMENT_METAS.map(m => m.hex);
     expect(new Set(hexes).size).toBe(3);
     PAYMENT_METAS.forEach(m => {
-      expect(m.icon).toBeDefined();
+      expect(m.logo).toBeTruthy();
       expect(m.selectedClass).toContain('text-white');
       expect(PAYMENT_META[m.type]).toBe(m);
     });

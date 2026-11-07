@@ -75,6 +75,7 @@ const RegistrationForm: React.FC = () => {
   const [contactNote, setContactNote] = useState<string | null>(null);
   const [isDateOpen, setIsDateOpen] = useState(false);
   const submittingRef = useRef(false);
+  const isDuplicateOpenRef = useRef(false);
   const { entries, addEntry } = useSessionEntries();
   const timing = useEntryTiming();
   const { toast, showToast, closeToast } = useToast();
@@ -254,6 +255,7 @@ const RegistrationForm: React.FC = () => {
         editId
       );
       if (existing) {
+        isDuplicateOpenRef.current = true;
         setDuplicate(existing);
         return;
       }
@@ -263,12 +265,21 @@ const RegistrationForm: React.FC = () => {
     await persist();
   };
 
+  /**
+   * QA-UX-01 : la fenêtre reste affichée 150 ms (animation de fermeture), boutons actifs. Une seule
+   * confirmation est prise en compte : il faut la fenêtre ouverte ET le verrou d'envoi posé par
+   * handleSubmit (submittingRef reste vrai pendant toute la phase du doublon).
+   */
   const handleConfirmDuplicate = async () => {
+    if (!isDuplicateOpenRef.current || !submittingRef.current) return;
+    isDuplicateOpenRef.current = false;
     setDuplicate(null);
     await persist();
   };
 
   const handleCancelDuplicate = () => {
+    if (!isDuplicateOpenRef.current) return;
+    isDuplicateOpenRef.current = false;
     setDuplicate(null);
     releaseSubmit();
   };

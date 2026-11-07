@@ -15,6 +15,8 @@ interface ContactAutocompleteProps {
 
 const DEBOUNCE_MS = 180;
 
+const hasFocus = (el: HTMLElement | null): boolean => el !== null && document.activeElement === el;
+
 const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
   value,
   onChange,
@@ -34,6 +36,7 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
   const isListVisible = open && suggestions.length > 0;
   const lastQueryRef = useRef<string>('');
   const justSelectedRef = useRef<boolean>(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!enabled) {
@@ -48,7 +51,9 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
     }
 
     const trimmed = value.trim();
-    if (trimmed.length < minChars) {
+    // QA-UX-02 : une valeur posée par le choix d'un contact (champ sans focus) ne relance pas la
+    // recherche ; seule une frappe de l'utilisateur dans ce champ ouvre la liste.
+    if (trimmed.length < minChars || !hasFocus(inputRef.current)) {
       setSuggestions([]);
       setOpen(false);
       return;
@@ -62,7 +67,7 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
         // Drop result if a newer query started
         if (lastQueryRef.current !== trimmed) return;
         setSuggestions(results);
-        setOpen(results.length > 0);
+        setOpen(results.length > 0 && hasFocus(inputRef.current));
         setHighlight(0);
       } catch (err) {
         console.error('Error searching contacts:', err);
@@ -122,6 +127,7 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
     <div ref={containerRef} className="relative">
       <input
         {...inputProps}
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}

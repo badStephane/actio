@@ -1,10 +1,12 @@
-import { Banknote, Smartphone, Waves, type LucideIcon } from 'lucide-react';
 import { Registration } from '../types';
+import especesLogo from '../assets/payment/especes.svg';
+import waveLogo from '../assets/payment/wave.png';
+import orangeMoneyLogo from '../assets/payment/orange-money.png';
 
 /**
  * Source unique des modes de paiement (plan design §2, U6, U21, U24).
  * Ordre fixe partout : Espèces, Wave, Orange Money. Jamais la couleur seule :
- * chaque mode s'affiche avec son icône et son libellé.
+ * chaque mode s'affiche avec son logo (D25, décoratif) ET son libellé texte, toujours.
  * Les classes sont écrites en entier pour que Tailwind les détecte.
  */
 export type PaymentType = Registration['paymentType'];
@@ -12,7 +14,10 @@ export type PaymentType = Registration['paymentType'];
 export interface PaymentMeta {
   type: PaymentType;
   label: string;
-  icon: LucideIcon;
+  /** Logo du mode (URL d'asset Vite), affiché en `<img alt="">` à côté du libellé. */
+  logo: string;
+  /** Classe de forme du logo (Wave : coins arrondis pour adoucir son fond carré). */
+  logoClass: string;
   /** Touche du clavier qui sélectionne ce mode dans la saisie. */
   shortcut: '1' | '2' | '3';
   /** Texte coloré sur fond blanc (>= 5:1). */
@@ -33,7 +38,8 @@ export const PAYMENT_META: Readonly<Record<PaymentType, PaymentMeta>> = {
   cash: {
     type: 'cash',
     label: 'Espèces',
-    icon: Banknote,
+    logo: especesLogo,
+    logoClass: '',
     shortcut: '1',
     textClass: 'text-cash',
     fillClass: 'bg-cash-fill',
@@ -44,7 +50,8 @@ export const PAYMENT_META: Readonly<Record<PaymentType, PaymentMeta>> = {
   wave: {
     type: 'wave',
     label: 'Wave',
-    icon: Waves,
+    logo: waveLogo,
+    logoClass: 'rounded-sm',
     shortcut: '2',
     textClass: 'text-wave',
     fillClass: 'bg-wave-fill',
@@ -55,7 +62,8 @@ export const PAYMENT_META: Readonly<Record<PaymentType, PaymentMeta>> = {
   orange_money: {
     type: 'orange_money',
     label: 'Orange Money',
-    icon: Smartphone,
+    logo: orangeMoneyLogo,
+    logoClass: '',
     shortcut: '3',
     textClass: 'text-om',
     fillClass: 'bg-om-fill',

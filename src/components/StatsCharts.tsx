@@ -2,7 +2,8 @@ import React from 'react';
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
-import { PaymentType } from './paymentMeta';
+import { PAYMENT_METAS, PaymentType } from './paymentMeta';
+import PaymentLogo from './PaymentLogo';
 import { formatAmount, formatAxisAmount, formatDateShort } from './uiFormat';
 
 export interface PaymentSlice {
@@ -42,8 +43,18 @@ const isAnimationActive = !PREFERS_REDUCED_MOTION;
 /** « 03/11 » à partir de 'AAAA-MM-JJ', sans objet Date. */
 const dayMonth = (iso: string): string => formatDateShort(iso).slice(0, 5);
 
-/** Légende en encre lisible, la couleur reste portée par la pastille (U18). */
-const legendText = (value: string) => <span style={{ color: INK_SOFT }}>{value}</span>;
+const TYPE_BY_LABEL = new Map(PAYMENT_METAS.map(m => [m.label, m.type]));
+
+/** Légende en encre lisible (U18) ; les modes de paiement ajoutent leur logo (D25), libellé toujours affiché. */
+const legendText = (value: string) => {
+  const type = TYPE_BY_LABEL.get(value);
+  return (
+    <span style={{ color: INK_SOFT, display: 'inline-flex', alignItems: 'center', gap: 4, verticalAlign: 'middle' }}>
+      {type && <PaymentLogo type={type} sizeClass="h-4 w-4" />}
+      {value}
+    </span>
+  );
+};
 
 /** Graphiques de la page Statistiques (Lot 2, 2.4) + alternative texte pour lecteurs d'écran (m22). */
 const StatsCharts: React.FC<StatsChartsProps> = ({ byPayment, timeline }) => (

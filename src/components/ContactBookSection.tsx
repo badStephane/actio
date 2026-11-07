@@ -164,7 +164,7 @@ const ContactBookSection: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setClearTarget(s.source)}
-                      className="text-gray-400 hover:text-red-600"
+                      className="text-ink-muted hover:text-danger"
                       aria-label={`Supprimer ${s.source}`}
                       title="Supprimer cette source"
                     >
@@ -272,7 +272,7 @@ const ContactBookSection: React.FC = () => {
                 <ul className="mt-1.5 space-y-0.5 max-h-32 overflow-auto">
                   {importResult.invalid.slice(0, 30).map(r => (
                     <li key={r.rowNumber} className="flex gap-2 text-gray-700">
-                      <span className="text-gray-400 tabular-nums">L.{r.rowNumber}</span>
+                      <span className="text-ink-muted tabular-nums">L.{r.rowNumber}</span>
                       <span>{r.error}</span>
                     </li>
                   ))}

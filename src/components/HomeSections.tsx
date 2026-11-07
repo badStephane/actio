@@ -4,6 +4,7 @@ import { AlertTriangle, CalendarDays, Clock, Hourglass, PlusCircle } from 'lucid
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateLong } from './uiFormat';
 import { PAYMENT_META } from './paymentMeta';
+import PaymentLogo from './PaymentLogo';
 import { ActivityStatus } from './currentActivity';
 
 export interface PaymentBreakdown {
@@ -101,7 +102,7 @@ export const PaymentBreakdownCard: React.FC<PaymentBreakdownCardProps> = ({ toda
               return (
                 <li key={b.type} className="flex items-center justify-between gap-2 text-sm">
                   <span className={`flex items-center gap-2 min-w-0 font-semibold ${meta.textClass}`}>
-                    <meta.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <PaymentLogo type={b.type} />
                     <span className="truncate">{meta.label}</span>
                   </span>
                   <span className="flex items-center gap-3 tabular-nums">

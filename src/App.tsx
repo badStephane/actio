@@ -18,6 +18,8 @@ import PreferencesModal from './components/PreferencesModal';
 import UpdateChecker from './components/UpdateChecker';
 import DemoBanner from './components/DemoBanner';
 import { DEMO_MODE } from './utils/demo';
+import actioLogo from './assets/brand/actio-logo.svg';
+import actioLogoDark from './assets/brand/actio-logo-dark.svg';
 import GlobalShortcuts from './components/GlobalShortcuts';
 import { NEW_REGISTRATION_SHORTCUT_LABEL } from './components/shortcuts';
 
@@ -118,10 +120,8 @@ function AppShell() {
           `}>
             {/* App title */}
             <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src="/logo-mark.svg" alt="Actio" className="h-6 w-6 rounded" />
-                <p className="text-sm font-semibold text-white tracking-tight">Actio</p>
-              </div>
+              {/* D24 : logo complet en version sombre (texte blanc, coche verte), environ 28 px. */}
+              <img src={actioLogoDark} alt="Actio" className="h-7 w-auto" />
               <button
                 onClick={() => setSidebarOpen(false)}
                 className="lg:hidden text-slate-300 hover:text-white"
@@ -202,10 +202,7 @@ function AppShell() {
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="flex items-center gap-2">
-                <img src="/logo-mark.svg" alt="Actio" className="h-6 w-6 rounded" />
-                <span className="text-sm font-semibold text-gray-800">Actio</span>
-              </div>
+              <img src={actioLogo} alt="Actio" className="h-6 w-auto" />
             </div>
 
             <PageHeader />

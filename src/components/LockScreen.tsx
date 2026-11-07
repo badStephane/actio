@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Lock, Eye, EyeOff, AlertCircle, ShieldCheck, KeyRound, Info } from 'lucide-react';
+import actioLogo from '../assets/brand/actio-logo.svg';
 import { createInitialPassword, verifyPassword, MIN_PASSWORD_LENGTH } from '../utils/auth';
 import { useRetryCountdown, formatWait } from './useRetryCountdown';
 import { errorMessage } from './uiFormat';
@@ -96,14 +97,16 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
   };
 
   const containerClass = overlay
-    ? 'fixed inset-0 z-[60] flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
-    : 'h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900';
+    ? 'fixed inset-0 z-[60] flex items-center justify-center bg-brand-900'
+    : 'h-full flex items-center justify-center bg-brand-900';
 
   return (
     <div className={containerClass} role="dialog" aria-modal="true" aria-labelledby="lock-title">
       <div className={`panel shadow-2xl w-full max-w-sm mx-4 ${shake ? 'animate-shake' : ''}`}>
         <div className="px-5 pt-5 pb-3 text-center border-b border-gray-200">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-50 mb-3">
+          {/* D24 : logo couleur sur fond clair */}
+          <img src={actioLogo} alt="Actio" className="h-9 w-auto mx-auto mb-4" />
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-50 mb-2">
             {isSetup ? (
               <ShieldCheck className="h-6 w-6 text-brand-600" aria-hidden="true" />
             ) : (

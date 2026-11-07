@@ -1,5 +1,6 @@
 import React from 'react';
 import { DatabaseZap, RefreshCw } from 'lucide-react';
+import actioLogo from '../assets/brand/actio-logo.svg';
 import { BACKUP_DIR_LABEL } from '../utils/dbBackup';
 import BackupActions from './BackupActions';
 import Toast from './Toast';
@@ -18,8 +19,9 @@ const AuthErrorScreen: React.FC<AuthErrorScreenProps> = ({ detail, onRetry }) =>
   const { toast, showToast, closeToast } = useToast();
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="h-full flex items-center justify-center bg-brand-900">
       <div role="alert" className="panel shadow-2xl w-full max-w-md mx-4 p-6 text-center">
+        <img src={actioLogo} alt="Actio" className="h-9 w-auto mx-auto mb-4" />
         <DatabaseZap className="h-10 w-10 text-red-600 mx-auto mb-3" aria-hidden="true" />
         <h1 className="text-base font-semibold text-gray-900 mb-1">
           Impossible d'ouvrir la base de données

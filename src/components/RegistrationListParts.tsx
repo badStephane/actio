@@ -3,6 +3,7 @@ import { Users, CalendarDays, Layers } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateShort } from './uiFormat';
 import { PAYMENT_METAS } from './paymentMeta';
+import PaymentLogo from './PaymentLogo';
 
 export const RegistrationListSkeleton: React.FC = () => (
   <div className="page h-full flex flex-col gap-3" aria-busy="true">
@@ -66,7 +67,7 @@ export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ row
         <div key={meta.type} className="panel px-3 py-2 relative overflow-hidden">
           <span className={`absolute inset-y-0 left-0 w-1 ${meta.fillClass}`} aria-hidden="true" />
           <div className={`flex items-center gap-1 text-xs font-medium ${meta.textClass}`}>
-            <meta.icon className="h-3 w-3" aria-hidden="true" />
+            <PaymentLogo type={meta.type} sizeClass="h-3.5 w-3.5" />
             {meta.label}
           </div>
           <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">

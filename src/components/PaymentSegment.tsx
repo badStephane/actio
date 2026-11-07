@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import { PAYMENT_METAS, PaymentType, paymentRadioId, paymentTypeForKey } from './paymentMeta';
+import PaymentLogo from './PaymentLogo';
 
 interface PaymentSegmentProps {
   value: PaymentType;
@@ -35,7 +36,6 @@ const PaymentSegment: React.FC<PaymentSegmentProps> = ({ value, onChange }) => {
       <div className="flex flex-wrap gap-2">
         {PAYMENT_METAS.map(meta => {
           const isChecked = value === meta.type;
-          const Icon = isChecked ? Check : meta.icon;
           return (
             <label key={meta.type} className="relative cursor-pointer">
               <input
@@ -49,13 +49,14 @@ const PaymentSegment: React.FC<PaymentSegmentProps> = ({ value, onChange }) => {
                 className="peer sr-only"
               />
               <span
-                className={`flex items-center gap-2 h-control-lg min-w-[8rem] px-3 rounded-control border text-sm font-semibold select-none transition-colors duration-fast peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-offset-2 ${
+                className={`flex items-center gap-1.5 h-control-lg px-2.5 rounded-control border text-sm font-semibold select-none transition-colors duration-fast peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-offset-2 ${
                   isChecked ? meta.selectedClass : 'bg-white border-gray-500 text-ink hover:bg-gray-50'
                 }`}
               >
-                <Icon className={`h-4 w-4 shrink-0 ${isChecked ? '' : meta.textClass}`} aria-hidden="true" />
+                <PaymentLogo type={meta.type} sizeClass="h-3.5 w-3.5" onTile />
                 {meta.label}
-                <span className={`ml-auto pl-2 text-xs font-normal ${isChecked ? 'text-white' : 'text-ink-muted'}`} aria-hidden="true">
+                {isChecked && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
+                <span className={`ml-auto pl-1.5 text-xs font-normal ${isChecked ? 'text-white' : 'text-ink-muted'}`} aria-hidden="true">
                   {meta.shortcut}
                 </span>
               </span>

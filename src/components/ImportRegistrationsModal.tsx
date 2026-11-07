@@ -152,7 +152,8 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
               <div className="panel bg-gray-50 p-3 text-xs text-gray-700">
                 <p className="font-medium mb-1">Colonnes attendues</p>
                 <ul className="space-y-0.5 text-gray-700">
-                  <li><b>Nom</b>, <b>Prénoms</b>, <b>Téléphone</b>, <b>Adresse</b> : requis</li>
+                  <li><b>Nom</b>, <b>Prénoms</b>, <b>Téléphone</b> : requis</li>
+                  <li><b>Adresse</b> : facultative (reprise du carnet de contacts si la personne y figure)</li>
                   <li><b>Montant</b> : entier en F CFA, sans décimales (montant par défaut de l'activité si la cellule est vide)</li>
                   <li><b>Mode de paiement</b> : espèces, wave ou orange money (colonne absente : espèces)</li>
                   <li><b>Date d'inscription</b> : AAAA-MM-JJ ou JJ/MM/AAAA (date du jour si vide)</li>
