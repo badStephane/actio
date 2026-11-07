@@ -132,7 +132,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
                     <summary className="text-xs text-blue-700 cursor-pointer hover:underline">
                       Voir les notes de version
                     </summary>
-                    <pre className="text-[11px] text-gray-600 mt-2 whitespace-pre-wrap max-h-32 overflow-auto">
+                    <pre className="text-xs text-gray-600 mt-2 whitespace-pre-wrap max-h-32 overflow-auto">
                       {update.body}
                     </pre>
                   </details>

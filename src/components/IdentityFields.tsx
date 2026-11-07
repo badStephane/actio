@@ -59,7 +59,7 @@ const IdentityFields: React.FC<IdentityFieldsProps> = ({
         })}
         <FieldError id="lastName-error" message={errors.lastName} />
         {hasSuggestions && (
-          <p id="lastName-hint" className="mt-1 text-xs text-ink-muted">
+          <p id="lastName-hint" className="mt-1 text-xs text-ink-muted short:sr-only">
             Tapez 2 lettres ou des chiffres du téléphone pour retrouver un contact.
           </p>
         )}

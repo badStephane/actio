@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Users, CalendarDays, Layers } from 'lucide-react';
 import { Activity, Registration } from '../types';
-import { formatAmount } from './uiFormat';
+import { formatAmount, formatDateShort } from './uiFormat';
 import { PAYMENT_METAS } from './paymentMeta';
 
 export const RegistrationListSkeleton: React.FC = () => (
@@ -55,17 +55,17 @@ export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ row
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
       <div className="panel px-3 py-2">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Inscriptions</div>
+        <div className="text-xs font-medium text-gray-600">Inscriptions</div>
         <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{stats.all.count}</div>
       </div>
       <div className="panel px-3 py-2">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Montant total</div>
+        <div className="text-xs font-medium text-gray-600">Montant total</div>
         <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{formatAmount(stats.all.amount)}</div>
       </div>
       {stats.byPayment.map(({ meta, totals }) => (
         <div key={meta.type} className="panel px-3 py-2 relative overflow-hidden">
           <span className={`absolute inset-y-0 left-0 w-1 ${meta.fillClass}`} aria-hidden="true" />
-          <div className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider ${meta.textClass}`}>
+          <div className={`flex items-center gap-1 text-xs font-medium ${meta.textClass}`}>
             <meta.icon className="h-3 w-3" aria-hidden="true" />
             {meta.label}
           </div>
@@ -106,22 +106,22 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
         key={a.id}
         type="button"
         onClick={() => onSelect(a.id)}
-        className={`panel p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all duration-100 group ${isArchived ? 'opacity-80' : ''}`}
+        className="panel p-4 text-left hover:border-brand-500 hover:shadow-sm transition-all duration-fast group"
       >
         <div className="flex items-start gap-2 mb-2">
           <span className="h-3 w-3 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: a.color }} aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700">{a.name}</h3>
             {isArchived && (
-              <span className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Archivée</span>
+              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-gray-200 text-xs font-semibold text-ink-soft">Archivée</span>
             )}
           </div>
         </div>
         <TotalsLine totals={s} />
         {a.eventDate && (
-          <div className="mt-1.5 text-[11px] text-gray-600 inline-flex items-center gap-1">
+          <div className="mt-1.5 text-xs text-gray-600 inline-flex items-center gap-1">
             <CalendarDays className="h-3 w-3" aria-hidden="true" />
-            {new Date(a.eventDate).toLocaleDateString('fr-FR')}
+            {formatDateShort(a.eventDate)}
           </div>
         )}
       </button>
@@ -131,8 +131,8 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
   return (
     <div className="p-6 max-w-5xl">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold text-gray-800 mb-1">Sélectionnez une liste à consulter</h2>
-        <p className="text-xs text-gray-600">
+        <h2 className="text-base font-semibold text-ink mb-1">Sélectionnez une liste à consulter</h2>
+        <p className="text-sm text-ink-muted">
           Choisissez une activité pour afficher ses inscriptions, ou consultez toutes les inscriptions.
         </p>
       </div>
@@ -146,7 +146,7 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
             <Layers className="h-3.5 w-3.5 text-blue-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700">Toutes les inscriptions</h3>
-              <p className="text-[11px] text-gray-600 mt-0.5">Vue globale, toutes activités confondues</p>
+              <p className="text-xs text-gray-600 mt-0.5">Vue globale, toutes activités confondues</p>
             </div>
           </div>
           <TotalsLine totals={globalTotals} />
@@ -155,7 +155,7 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
       </div>
       {archivedActivities.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-xs font-medium text-gray-600 uppercase tracking-wider mb-2">
+          <h3 className="text-sm font-semibold text-ink-soft mb-2">
             Archivées ({archivedActivities.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

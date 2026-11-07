@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Eraser, List, Save, X } from 'lucide-react';
 import { Registration } from '../types';
 import { RegistrationFormErrors, displayName, fieldA11y } from './registrationFormModel';
 import { formatIsoDate } from './importReviewModel';
@@ -130,9 +130,9 @@ interface SavedBannerProps {
  * pour que le lecteur d'écran annonce chaque nouveau contenu.
  */
 export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
-  <div role="status" className={saved ? 'mx-4 mt-4' : 'sr-only'}>
+  <div role="status" className={saved ? 'mx-4 mt-4 short:mt-2' : 'sr-only'}>
     {saved && (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-control border border-success-line bg-success-soft text-sm text-success">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 short:py-1 rounded-control border border-success-line bg-success-soft text-sm text-success">
         <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>
           Inscription enregistrée : <b>{displayName(saved)}</b> ·{' '}
@@ -175,6 +175,57 @@ export const RegistrationNotFound: React.FC<{ onBack: () => void }> = ({ onBack 
       <p className="text-sm text-gray-600 mb-4">L'inscription demandée n'existe pas ou a été supprimée.</p>
       <button onClick={onBack} className="btn btn-primary">
         Retour à la liste
+      </button>
+    </div>
+  </div>
+);
+
+interface FormActionsProps {
+  isEditMode: boolean;
+  isSubmitting: boolean;
+  isSubmitDisabled: boolean;
+  listHref: string;
+  onClear: () => void;
+  onCancel: () => void;
+}
+
+/** Pied du formulaire (1.2) : Effacer la saisie / Voir la liste ou Annuler / Enregistrer (Entrée). */
+export const FormActions: React.FC<FormActionsProps> = ({
+  isEditMode, isSubmitting, isSubmitDisabled, listHref, onClear, onCancel,
+}) => (
+  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 short:py-2 border-t border-gray-200 bg-surface-subtle rounded-b-card">
+    {isEditMode ? (
+      <span />
+    ) : (
+      <button type="button" onClick={onClear} className="btn btn-ghost btn-lg">
+        <Eraser className="h-4 w-4" aria-hidden="true" />
+        Effacer la saisie
+      </button>
+    )}
+    <div className="flex flex-wrap gap-2">
+      {isEditMode ? (
+        <button type="button" onClick={onCancel} className="btn btn-default btn-lg">
+          <X className="h-4 w-4" aria-hidden="true" />
+          Annuler
+        </button>
+      ) : (
+        <Link to={listHref} className="btn btn-default btn-lg">
+          <List className="h-4 w-4" aria-hidden="true" />
+          Voir la liste
+        </Link>
+      )}
+      <button
+        type="submit"
+        disabled={isSubmitDisabled}
+        aria-busy={isSubmitting}
+        aria-keyshortcuts="Enter"
+        className="btn btn-brand btn-lg disabled:opacity-60 disabled:pointer-events-none"
+      >
+        <Save className="h-4 w-4" aria-hidden="true" />
+        {isSubmitting
+          ? isEditMode ? 'Mise à jour...' : 'Enregistrement...'
+          : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+        <kbd className="kbd border-white/60 text-white" aria-hidden="true">Entrée</kbd>
       </button>
     </div>
   </div>

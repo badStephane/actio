@@ -149,7 +149,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
               </button>
             </div>
             {isSetup && (
-              <p id="lock-hint" className="mt-1 text-[11px] text-gray-600">
+              <p id="lock-hint" className="mt-1 text-xs text-gray-600">
                 Au moins {MIN_PASSWORD_LENGTH} caractères.
               </p>
             )}
@@ -198,7 +198,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
           </button>
 
           {isSetup ? (
-            <p className="flex items-start gap-1.5 text-[11px] text-gray-600 pt-1">
+            <p className="flex items-start gap-1.5 text-xs text-gray-600 pt-1">
               <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" aria-hidden="true" />
               <span>
                 Ce mot de passe verrouille l'écran de l'application ; il ne chiffre pas le fichier

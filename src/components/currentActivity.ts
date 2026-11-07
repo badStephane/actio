@@ -26,18 +26,48 @@ export const writeCurrentActivityId = (id: string): void => {
 
 export const isLiveActivity = (a: Activity): boolean => !a.archivedAt;
 
-/** Choix automatique : prochaine activité à venir, sinon la dernière créée (logique de l'accueil). */
-export const pickCurrentActivity = (activities: Activity[]): Activity | null => {
+/**
+ * Choix automatique (U11) : la prochaine activité à venir ; à défaut la plus récemment passée ;
+ * à défaut (aucune date) la dernière créée.
+ */
+export const pickCurrentActivity = (activities: Activity[], today: string = todayLocalIso()): Activity | null => {
   const live = activities.filter(isLiveActivity);
   if (live.length === 0) return null;
 
-  const today = todayLocalIso();
-  const upcoming = live
-    .filter(a => a.eventDate && a.eventDate >= today)
-    .sort((a, b) => (a.eventDate ?? '').localeCompare(b.eventDate ?? ''));
+  const byDate = (a: Activity, b: Activity) => (a.eventDate ?? '').localeCompare(b.eventDate ?? '');
+  const upcoming = live.filter(a => a.eventDate && a.eventDate >= today).sort(byDate);
   if (upcoming.length > 0) return upcoming[0];
 
+  const past = live.filter(a => a.eventDate && a.eventDate < today).sort(byDate);
+  if (past.length > 0) return past[past.length - 1];
+
   return [...live].sort((a, b) => b.createdAt - a.createdAt)[0];
+};
+
+const DAY_MS = 86_400_000;
+
+/** Jours entre deux dates 'AAAA-MM-JJ', en UTC pur (aucun effet de fuseau ni d'heure d'été). */
+export const daysBetweenIso = (fromIso: string, toIso: string): number => {
+  const utc = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((utc(toIso) - utc(fromIso)) / DAY_MS);
+};
+
+export type ActivityStatus =
+  | { kind: 'undated' }
+  | { kind: 'upcoming'; days: number }
+  | { kind: 'today' }
+  | { kind: 'past'; eventDate: string };
+
+/** Statut toujours vrai de l'activité (U11) : jamais « en cours » avec une durée passée. */
+export const activityStatus = (a: Pick<Activity, 'eventDate'>, today: string = todayLocalIso()): ActivityStatus => {
+  if (!a.eventDate) return { kind: 'undated' };
+  const days = daysBetweenIso(today, a.eventDate);
+  if (days > 0) return { kind: 'upcoming', days };
+  if (days === 0) return { kind: 'today' };
+  return { kind: 'past', eventDate: a.eventDate };
 };
 
 /**

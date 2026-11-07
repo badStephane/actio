@@ -60,6 +60,14 @@
   .btn-ghost {
     @apply bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200;
   }
+  /* Actions secondaires et lignes de tableau : 32 px, texte 14 px (Lot 2). */
+  .btn-sm {
+    @apply min-h-8 px-2.5 text-sm rounded-control;
+  }
+  /* Bouton icône seule : cible de 36 px, nom accessible obligatoire (aria-label). */
+  .btn-icon {
+    @apply inline-flex items-center justify-center h-9 w-9 rounded-control transition-colors duration-fast;
+  }
   /* Actions du guichet : 44 px, texte 14 px (Lot 1). */
   .btn-lg {
     @apply min-h-control-lg px-4 text-sm font-semibold rounded-control gap-2;

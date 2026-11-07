@@ -34,7 +34,7 @@ const ImportReviewRow: React.FC<ImportReviewRowProps> = ({
       <td className="px-3 py-2">
         <div className="font-medium text-gray-900">{fullName}</div>
         <div className="text-gray-600">{activity?.name ?? 'Activité inconnue'}</div>
-        <div className="text-[11px] text-gray-600">Lot importé de {item.batchSize} lignes</div>
+        <div className="text-xs text-gray-600">Lot importé de {item.batchSize} lignes</div>
       </td>
       <td className="px-3 py-2">
         <ul className="space-y-0.5 text-gray-800">
@@ -44,7 +44,7 @@ const ImportReviewRow: React.FC<ImportReviewRowProps> = ({
       <td className="px-3 py-2 tabular-nums text-gray-800 whitespace-nowrap">
         {showAmount && <div>{formatAmount(r.amount)}</div>}
         {item.originalAmount !== undefined && (
-          <div className="text-[11px] text-gray-600">lu à l'import : {formatRawAmount(item.originalAmount)}</div>
+          <div className="text-xs text-gray-600">lu à l'import : {formatRawAmount(item.originalAmount)}</div>
         )}
         {showDate && <div>{formatIsoDate(r.registrationDate)}</div>}
       </td>
@@ -79,7 +79,7 @@ const ImportReviewRow: React.FC<ImportReviewRowProps> = ({
           </button>
         </div>
         {status === 'error' && errorText && (
-          <p role="alert" className="mt-1 text-[11px] text-red-700 text-right">{errorText}</p>
+          <p role="alert" className="mt-1 text-xs text-red-700 text-right">{errorText}</p>
         )}
       </td>
     </tr>

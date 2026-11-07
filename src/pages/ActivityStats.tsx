@@ -1,30 +1,48 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Download } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
+import { exportToExcel } from '../utils/excelExport';
+import { todayLocalIso } from '../utils/dates';
 import LoadError from '../components/LoadError';
+import Toast from '../components/Toast';
+import StatsCharts, { PaymentSlice, TimelinePoint } from '../components/StatsCharts';
+import { useToast } from '../components/useToast';
 import { PAYMENT_METAS } from '../components/paymentMeta';
+import { daysBetweenIso } from '../components/currentActivity';
+import { errorMessage, formatAmount, formatDateShort } from '../components/uiFormat';
 
-const formatAmount = (amount: number): string =>
-  `${new Intl.NumberFormat('fr-FR').format(Math.round(amount))} F`;
+const LAST_DAYS = 30;
 
+const slugify = (s: string): string =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="panel p-4">
+    <p className="text-xs font-semibold text-ink-muted mb-1">{label}</p>
+    <p className="text-2xl font-bold text-ink tabular-nums">{value}</p>
+  </div>
+);
+
+const StatsSkeleton: React.FC = () => (
+  <div className="p-6 max-w-5xl" aria-busy="true">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="panel p-4">
+          <div className="skeleton h-3 w-24 rounded mb-2" />
+          <div className="skeleton h-7 w-16 rounded" />
+        </div>
+      ))}
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="panel p-4 skeleton h-64" />
+      <div className="panel p-4 skeleton h-64" />
+    </div>
+    <span className="sr-only">Chargement des statistiques...</span>
+  </div>
+);
 
 const ActivityStats: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +52,7 @@ const ActivityStats: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const { toast, showToast, closeToast } = useToast();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -63,14 +82,13 @@ const ActivityStats: React.FC = () => {
   const stats = useMemo(() => {
     if (registrations.length === 0) return null;
     const totalAmount = registrations.reduce((sum, r) => sum + r.amount, 0);
-    const avgAmount = totalAmount / registrations.length;
+    const today = todayLocalIso();
+    const last30Days = registrations.filter(r => {
+      const age = daysBetweenIso(r.registrationDate, today);
+      return age >= 0 && age <= LAST_DAYS;
+    }).length;
 
-    // Last 30 days count
-    const now = Date.now();
-    const last30Days = registrations.filter(r => now - new Date(r.registrationDate).getTime() <= 30 * 24 * 60 * 60 * 1000).length;
-
-    // By payment type
-    const byPayment = PAYMENT_METAS.map(meta => {
+    const byPayment: PaymentSlice[] = PAYMENT_METAS.map(meta => {
       const list = registrations.filter(r => r.paymentType === meta.type);
       return {
         name: meta.label,
@@ -81,47 +99,34 @@ const ActivityStats: React.FC = () => {
       };
     }).filter(p => p.count > 0);
 
-    // Daily registrations over time
-    const byDay = new Map<string, { count: number; amount: number }>();
+    const byDay = new Map<string, TimelinePoint>();
     for (const r of registrations) {
-      const d = r.registrationDate;
-      const cur = byDay.get(d) ?? { count: 0, amount: 0 };
-      cur.count += 1;
-      cur.amount += r.amount;
-      byDay.set(d, cur);
+      const cur = byDay.get(r.registrationDate) ?? { date: r.registrationDate, count: 0, amount: 0 };
+      byDay.set(r.registrationDate, { ...cur, count: cur.count + 1, amount: cur.amount + r.amount });
     }
-    const timeline = Array.from(byDay.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, v]) => ({ date, count: v.count, amount: v.amount }));
+    const timeline = [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
 
     return {
       total: registrations.length,
       totalAmount,
-      avgAmount,
+      average: Math.round(totalAmount / registrations.length),
       last30Days,
       byPayment,
       timeline,
     };
   }, [registrations]);
 
-  if (isLoading) {
-    return (
-      <div className="p-6 max-w-5xl">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="panel p-4">
-              <div className="skeleton h-3 w-24 rounded mb-2" />
-              <div className="skeleton h-7 w-16 rounded" />
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="panel p-4 skeleton h-64" />
-          <div className="panel p-4 skeleton h-64" />
-        </div>
-      </div>
-    );
-  }
+  /** U19 : export Excel depuis la page Statistiques (besoin du responsable). */
+  const handleExport = () => {
+    if (!activity || registrations.length === 0) return;
+    try {
+      exportToExcel(registrations, [activity], `${slugify(activity.name)}_${todayLocalIso()}`);
+    } catch (err) {
+      showToast('error', errorMessage(err, 'L\'export Excel a échoué.'));
+    }
+  };
+
+  if (isLoading) return <StatsSkeleton />;
 
   if (loadError) {
     return <LoadError message="Impossible de charger les statistiques." onRetry={() => void load()} />;
@@ -131,10 +136,10 @@ const ActivityStats: React.FC = () => {
     return (
       <div className="p-6">
         <div className="panel p-8 text-center max-w-md mx-auto">
-          <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-          <h2 className="text-base font-semibold text-gray-800 mb-1">Activité introuvable</h2>
-          <button onClick={() => navigate('/activities')} className="btn btn-primary mt-4">
-            <ArrowLeft className="h-3.5 w-3.5" />
+          <AlertCircle className="h-10 w-10 text-danger mx-auto mb-3" aria-hidden="true" />
+          <h2 className="text-base font-semibold text-ink mb-1">Activité introuvable</h2>
+          <button type="button" onClick={() => navigate('/activities')} className="btn btn-primary mt-4">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
             Retour aux activités
           </button>
         </div>
@@ -144,160 +149,48 @@ const ActivityStats: React.FC = () => {
 
   return (
     <div className="p-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <button
+          type="button"
           onClick={() => navigate('/activities')}
-          className="p-1.5 rounded hover:bg-gray-200 text-gray-600"
+          className="btn-icon text-ink-soft hover:bg-gray-200"
           aria-label="Retour aux activités"
           title="Retour"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="inline-block w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: activity.color }}
-          />
-          <h1 className="text-base font-semibold text-gray-800 truncate">
-            Statistiques · {activity.name}
-          </h1>
+          <span className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: activity.color }} aria-hidden="true" />
+          <h1 className="text-xl font-semibold text-ink truncate">Statistiques · {activity.name}</h1>
           {activity.eventDate && (
-            <span className="text-xs text-gray-500">· {new Date(activity.eventDate).toLocaleDateString('fr-FR')}</span>
+            <span className="text-sm text-ink-muted tabular-nums">· {formatDateShort(activity.eventDate)}</span>
           )}
         </div>
+        {registrations.length > 0 && (
+          <button type="button" onClick={handleExport} className="ml-auto btn btn-success btn-sm">
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Exporter Excel
+          </button>
+        )}
       </div>
 
       {!stats ? (
-        <div className="panel p-8 text-center text-gray-500 text-sm">
+        <div className="panel p-8 text-center text-ink-muted text-sm">
           Aucune inscription pour cette activité : les statistiques apparaîtront dès la première inscription.
         </div>
       ) : (
         <>
-          {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <div className="panel p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total inscriptions</p>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{stats.total}</p>
-            </div>
-            <div className="panel p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Montant total</p>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatAmount(stats.totalAmount)}</p>
-            </div>
-            <div className="panel p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Montant moyen</p>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{formatAmount(stats.avgAmount)}</p>
-            </div>
-            <div className="panel p-4">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">30 derniers jours</p>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{stats.last30Days}</p>
-            </div>
+            <KpiTile label="Total des inscriptions" value={String(stats.total)} />
+            <KpiTile label="Montant total" value={formatAmount(stats.totalAmount)} />
+            <KpiTile label="Moyenne par inscription" value={formatAmount(stats.average)} />
+            <KpiTile label={`${LAST_DAYS} derniers jours`} value={String(stats.last30Days)} />
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
-            {/* Payment breakdown - pie */}
-            <div className="panel p-4">
-              <h2 className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3">
-                Répartition par mode de paiement
-              </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stats.byPayment}
-                      dataKey="count"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={2}
-                    >
-                      {stats.byPayment.map((p) => (
-                        <Cell key={p.type} fill={p.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, _name, props) => [
-                        `${Number(value)} (${formatAmount((props as { payload: { amount: number } }).payload.amount)})`,
-                        (props as { payload: { name: string } }).payload.name,
-                      ]}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Amount per payment - bar */}
-            <div className="panel p-4">
-              <h2 className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3">
-                Montant collecté par mode
-              </h2>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.byPayment}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip
-                      formatter={(value) => [formatAmount(Number(value)), 'Montant']}
-                      contentStyle={{ fontSize: '12px' }}
-                    />
-                    <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
-                      {stats.byPayment.map((p) => (
-                        <Cell key={p.type} fill={p.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="panel p-4">
-            <h2 className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3">
-              Évolution des inscriptions
-            </h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats.timeline}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => new Date(v).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                  />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    formatter={(value, name) =>
-                      name === 'amount'
-                        ? [formatAmount(Number(value)), 'Montant']
-                        : [String(value), 'Inscriptions']
-                    }
-                    labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR')}
-                    contentStyle={{ fontSize: '12px' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    name="Inscriptions"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <StatsCharts byPayment={stats.byPayment} timeline={stats.timeline} />
         </>
       )}
+
+      <Toast open={toast.open} variant={toast.variant} message={toast.message} onClose={closeToast} />
     </div>
   );
 };

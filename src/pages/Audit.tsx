@@ -137,7 +137,7 @@ const Audit: React.FC = () => {
         <select
           value={filterEvent}
           onChange={(e) => setFilterEvent(e.target.value as EventType | '')}
-          className="input-field w-auto py-1"
+          className="input-field w-auto h-8 py-0"
           aria-label="Filtrer par type d'événement"
         >
           <option value="">Tous les événements</option>
@@ -149,10 +149,10 @@ const Audit: React.FC = () => {
         <select
           value={filterEntity}
           onChange={(e) => setFilterEntity(e.target.value as EntityType | '')}
-          className="input-field w-auto py-1"
-          aria-label="Filtrer par type d'entité"
+          className="input-field w-auto h-8 py-0"
+          aria-label="Filtrer par ce que concerne l'événement"
         >
-          <option value="">Toutes les entités</option>
+          <option value="">Concerne : tout</option>
           <option value="registration">Inscriptions</option>
           <option value="activity">Activités</option>
           <option value="system">Système</option>
@@ -163,46 +163,50 @@ const Audit: React.FC = () => {
           placeholder="Rechercher dans les résumés..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input-field w-64 py-1"
+          className="input-field w-64 h-8 py-0"
           aria-label="Rechercher dans l'historique"
         />
 
-        <button onClick={() => void load()} className="btn btn-default" title="Recharger">
-          <RefreshCw className="h-3.5 w-3.5" />
+        <button type="button" onClick={() => void load()} className="btn btn-default btn-sm">
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Recharger
         </button>
 
-        <button
-          onClick={() => setClearOpen(true)}
-          disabled={events.length === 0}
-          className={`btn btn-danger ${events.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Effacer
-        </button>
-
-        <span className="ml-auto text-xs text-gray-600">
+        <span className="text-sm text-ink-muted tabular-nums">
           {filtered.length} / {events.length} événement{events.length > 1 ? 's' : ''}
           {events.length >= AUDIT_LIMIT && ` (${AUDIT_LIMIT} derniers événements)`}
         </span>
+
+        {/* U20 : action destructive séparée des filtres, poussée à droite, sans fond plein. */}
+        <div className="ml-auto pl-3 border-l border-gray-300">
+          <button
+            type="button"
+            onClick={() => setClearOpen(true)}
+            disabled={events.length === 0}
+            className="btn btn-danger-ghost btn-sm disabled:opacity-50 disabled:pointer-events-none"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            Effacer l'historique
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-            <History className="h-10 w-10 mb-3 text-gray-300" />
-            <p className="text-sm font-medium text-gray-500">
+          <div className="flex flex-col items-center justify-center h-64">
+            <History className="h-10 w-10 mb-3 text-ink-muted" aria-hidden="true" />
+            <p className="text-sm font-semibold text-ink-soft">
               {events.length === 0 ? 'Aucun événement' : 'Aucun résultat pour ces filtres'}
             </p>
           </div>
         ) : (
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
               <tr>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 w-44">Date</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 w-28">Action</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600 w-28">Entité</th>
-                <th className="text-left px-3 py-2 font-medium text-gray-600">Détails</th>
+                <th className="text-left px-3 py-2 font-semibold text-ink-soft w-44">Date</th>
+                <th className="text-left px-3 py-2 font-semibold text-ink-soft w-32">Action</th>
+                <th className="text-left px-3 py-2 font-semibold text-ink-soft w-28">Concerne</th>
+                <th className="text-left px-3 py-2 font-semibold text-ink-soft">Détails</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -212,7 +216,7 @@ const Audit: React.FC = () => {
                     {formatDateTime(e.createdAt)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
                       {EVENT_LABEL[e.eventType] ?? e.eventType}
                     </span>
                   </td>

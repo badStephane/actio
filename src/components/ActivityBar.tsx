@@ -4,18 +4,10 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { isPastActivity } from './currentActivity';
 import { FieldError } from './RegistrationFormParts';
-import { formatAmount } from './uiFormat';
-
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
-/** « 3 août 2026 », sans objet Date (aucun décalage de fuseau). */
-const formatEventDate = (iso: string): string => {
-  const [y, m, d] = iso.split('-').map(Number);
-  return y && m && d ? `${d} ${MONTHS[m - 1] ?? ''} ${y}` : iso;
-};
+import { formatAmount, formatDateLong } from './uiFormat';
 
 const optionLabel = (a: Activity): string =>
-  `${a.name}${a.eventDate ? ` · ${formatEventDate(a.eventDate)}` : ''}${a.archivedAt ? ' (archivée)' : ''}`;
+  `${a.name}${a.eventDate ? ` · ${formatDateLong(a.eventDate)}` : ''}${a.archivedAt ? ' (archivée)' : ''}`;
 
 interface ActivityBarProps {
   value: string;
@@ -35,7 +27,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({
   const hasOnlyDefault = !isLoading && activities.every(a => a.id === DEFAULT_ACTIVITY_ID);
 
   return (
-    <div className="px-4 py-3 border-b border-gray-200 bg-surface-subtle rounded-t-card">
+    <div className="px-4 py-3 short:py-2 border-b border-gray-200 bg-surface-subtle rounded-t-card">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <label htmlFor="activityId" className="text-sm font-semibold text-ink-soft">
           Inscription pour

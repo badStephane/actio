@@ -1,51 +1,52 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  PlusCircle,
-  ClipboardList,
-  Users,
-  Coins,
-  CalendarClock,
-  CalendarRange,
-  CalendarDays,
-  Hourglass,
-  BarChart3,
-} from 'lucide-react';
+import { PlusCircle, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, BarChart3 } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
 import { Registration, Activity } from '../types';
 import LoadError from '../components/LoadError';
 import ImportReviewBanner from '../components/ImportReviewBanner';
-import { formatDateLong } from '../components/uiFormat';
-import { PAYMENT_ORDER } from '../components/paymentMeta';
-import { pickCurrentActivity, readCurrentActivityId, writeCurrentActivityId } from '../components/currentActivity';
+import { formatAmount, formatDateLong } from '../components/uiFormat';
 import {
-  KpiCard,
-  PaymentBreakdown,
-  PaymentBreakdownCard,
+  activityStatus,
+  pickCurrentActivity,
+  readCurrentActivityId,
+  writeCurrentActivityId,
+} from '../components/currentActivity';
+import { computeHomeStats } from '../components/homeStats';
+import {
   ActivityDetailsCard,
+  ActivityStatusBadge,
+  KpiCard,
+  PaymentBreakdownCard,
   RecentRegistrationsCard,
 } from '../components/HomeSections';
-import { formatAmount } from '../components/uiFormat';
-
-
-const todayIso = (): string => todayLocalIso();
-
-const monthIsoPrefix = (): string => todayIso().slice(0, 7);
-
-const daysBetween = (fromIso: string, toIso: string): number => {
-  const a = new Date(fromIso);
-  const b = new Date(toIso);
-  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 0;
-  return Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000));
-};
-
 
 interface DashboardData {
   registrations: Registration[];
   activities: Activity[];
 }
+
+const HomeSkeleton: React.FC = () => (
+  <div className="p-6 max-w-6xl" aria-busy="true">
+    <div className="skeleton h-14 w-full rounded mb-4" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="panel p-4">
+          <div className="skeleton h-3 w-24 rounded mb-2" />
+          <div className="skeleton h-7 w-20 rounded" />
+        </div>
+      ))}
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="panel p-4 skeleton h-48" />
+      <div className="panel p-4 skeleton h-48" />
+      <div className="panel p-4 skeleton h-48" />
+    </div>
+    <span className="sr-only">Chargement du tableau de bord...</span>
+  </div>
+);
 
 const Home: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -62,16 +63,11 @@ const Home: React.FC = () => {
     setLoadError(false);
     setData(null);
     try {
-      const [registrations, activities] = await Promise.all([
-        getRegistrations(),
-        getActivities(true),
-      ]);
+      const [registrations, activities] = await Promise.all([getRegistrations(), getActivities(true)]);
       setData({ registrations, activities });
-      // Auto-pick current activity if none selected, or stored id is no
-      // longer valid (deleted, archived).
+      // Activité mémorisée supprimée ou archivée : choix automatique (U11).
       const stored = readCurrentActivityId();
-      const liveActivities = activities.filter(a => !a.archivedAt);
-      const isStoredValid = stored && liveActivities.some(a => a.id === stored);
+      const isStoredValid = stored && activities.some(a => !a.archivedAt && a.id === stored);
       if (!isStoredValid) {
         const auto = pickCurrentActivity(activities);
         if (auto) setCurrentActivityId(auto.id);
@@ -86,102 +82,36 @@ const Home: React.FC = () => {
     void load();
   }, [load]);
 
-  const currentActivity = useMemo(() => {
-    if (!data) return null;
-    return data.activities.find(a => a.id === currentActivityId) ?? null;
-  }, [data, currentActivityId]);
+  const today = todayLocalIso();
+  const currentActivity = data?.activities.find(a => a.id === currentActivityId) ?? null;
 
-  const liveActivities = useMemo(() => {
-    if (!data) return [];
-    return data.activities
-      .filter(a => !a.archivedAt)
-      .sort((a, b) => {
-        const ad = a.eventDate ?? '9999-12-31';
-        const bd = b.eventDate ?? '9999-12-31';
-        return ad.localeCompare(bd);
-      });
-  }, [data]);
+  const liveActivities = useMemo(
+    () =>
+      (data?.activities ?? [])
+        .filter(a => !a.archivedAt)
+        .sort((a, b) => (a.eventDate ?? '9999-12-31').localeCompare(b.eventDate ?? '9999-12-31')),
+    [data]
+  );
 
-  const stats = useMemo(() => {
-    if (!data || !currentActivity) return null;
-    const registrations = data.registrations.filter(r => r.activityId === currentActivity.id);
-
-    const sumOf = (rs: Registration[]) => rs.reduce((acc, r) => acc + r.amount, 0);
-    const today = todayIso();
-    const monthPrefix = monthIsoPrefix();
-
-    const todayList = registrations.filter(r => r.registrationDate === today);
-    const monthList = registrations.filter(r => r.registrationDate.startsWith(monthPrefix));
-
-    const total = registrations.length;
-    const totalAmount = sumOf(registrations);
-
-    const breakdown: PaymentBreakdown[] = PAYMENT_ORDER.map(type => {
-      const list = registrations.filter(r => r.paymentType === type);
-      return {
-        type,
-        count: list.length,
-        amount: sumOf(list),
-        share: total > 0 ? list.length / total : 0,
-      };
-    });
-
-    const recent = [...registrations]
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 5);
-
-    const avgTicket = total > 0 ? Math.round(totalAmount / total) : 0;
-
-    return {
-      total,
-      totalAmount,
-      todayCount: todayList.length,
-      todayAmount: sumOf(todayList),
-      monthCount: monthList.length,
-      monthAmount: sumOf(monthList),
-      avgTicket,
-      breakdown,
-      recent,
-    };
-  }, [data, currentActivity]);
+  const stats = useMemo(
+    () => (data && currentActivity ? computeHomeStats(data.registrations, currentActivity.id, today) : null),
+    [data, currentActivity, today]
+  );
 
   if (loadError) {
     return <LoadError message="Impossible de charger le tableau de bord." onRetry={() => void load()} />;
   }
+  if (data === null) return <HomeSkeleton />;
 
-  if (data === null) {
-    return (
-      <div className="p-6 max-w-6xl">
-        <div className="skeleton h-9 w-72 rounded mb-4" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="panel p-4">
-              <div className="skeleton h-3 w-24 rounded mb-2" />
-              <div className="skeleton h-7 w-20 rounded" />
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="panel p-4 skeleton h-48" />
-          <div className="panel p-4 skeleton h-48" />
-          <div className="panel p-4 skeleton h-48" />
-        </div>
-      </div>
-    );
-  }
-
-  // No activity at all
   if (liveActivities.length === 0) {
     return (
       <div className="p-6 max-w-6xl">
         <div className="panel p-8 text-center">
-          <CalendarDays className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm font-medium text-gray-700 mb-1">Aucune activité active</p>
-          <p className="text-xs text-gray-500 mb-4">
-            Créez une activité pour commencer à suivre ses inscriptions ici.
-          </p>
+          <CalendarDays className="h-8 w-8 text-ink-muted mx-auto mb-2" aria-hidden="true" />
+          <p className="text-sm font-semibold text-ink mb-1">Aucune activité active</p>
+          <p className="text-sm text-ink-muted mb-4">Créez une activité pour commencer à suivre ses inscriptions ici.</p>
           <Link to="/activities" className="btn btn-primary">
-            <CalendarDays className="h-3.5 w-3.5" />
+            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             Aller aux activités
           </Link>
         </div>
@@ -192,52 +122,35 @@ const Home: React.FC = () => {
   const isEmpty = !stats || stats.total === 0;
   // m11 : la nouvelle inscription part avec l'activité affichée présélectionnée.
   const addHref = currentActivity ? `/add?activity=${encodeURIComponent(currentActivity.id)}` : '/add';
-  const daysToEvent = currentActivity?.eventDate
-    ? daysBetween(todayIso(), currentActivity.eventDate)
-    : null;
+  const listHref = currentActivity ? `/registrations?activity=${encodeURIComponent(currentActivity.id)}` : '/registrations';
 
   return (
     <div className="p-6 max-w-6xl">
       <ImportReviewBanner />
 
-      {/* Activity selector header */}
-      <div className="mb-4 panel px-4 py-3 flex flex-wrap items-center gap-3">
+      {/* Barre d'activité (U11, U13) : statut toujours vrai, action principale à portée. */}
+      <div className="mb-4 panel px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className="inline-block h-3 w-3 rounded-full shrink-0"
-            style={{ backgroundColor: currentActivity?.color ?? '#94a3b8' }}
+            className="inline-block h-3 w-3 rounded-full shrink-0 border border-gray-500"
+            style={{ backgroundColor: currentActivity?.color ?? '#9CA3AF' }}
+            aria-hidden="true"
           />
           <div className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
-              Activité en cours
-            </p>
-            <p className="text-sm font-semibold text-gray-900 truncate">
-              {currentActivity?.name ?? 'Aucune'}
-            </p>
+            <p className="text-xs font-semibold text-ink-muted">Activité en cours</p>
+            <p className="text-base font-semibold text-ink truncate">{currentActivity?.name ?? 'Aucune'}</p>
           </div>
         </div>
+        {currentActivity && <ActivityStatusBadge status={activityStatus(currentActivity, today)} />}
 
-        <div className="ml-auto flex items-center gap-2">
-          {currentActivity?.eventDate && (
-            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-gray-600">
-              <Hourglass className="h-3.5 w-3.5 text-gray-400" />
-              {daysToEvent !== null && daysToEvent > 0 && (
-                <>Dans <b className="tabular-nums">{daysToEvent}</b> jour{daysToEvent > 1 ? 's' : ''}</>
-              )}
-              {daysToEvent === 0 && <>C'est aujourd'hui !</>}
-              {daysToEvent !== null && daysToEvent < 0 && (
-                <>Il y a <b className="tabular-nums">{-daysToEvent}</b> jour{-daysToEvent > 1 ? 's' : ''}</>
-              )}
-            </span>
-          )}
-
-          <label className="flex items-center gap-1.5 text-xs text-gray-600">
-            <span className="hidden sm:inline">Activité :</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-sm text-ink-soft">
+            <span>Changer :</span>
             <select
               value={currentActivityId}
               onChange={(e) => setCurrentActivityId(e.target.value)}
               aria-label="Choisir l'activité affichée"
-              className="input-field w-auto py-1"
+              className="input-field w-auto h-control"
             >
               {liveActivities.map(a => (
                 <option key={a.id} value={a.id}>
@@ -247,32 +160,30 @@ const Home: React.FC = () => {
               ))}
             </select>
           </label>
-
           {currentActivity && (
-            <Link
-              to={`/activities/${currentActivity.id}/stats`}
-              className="btn btn-ghost"
-              title="Statistiques détaillées"
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Stats</span>
+            <Link to={`/activities/${currentActivity.id}/stats`} className="btn btn-default btn-sm">
+              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              Statistiques
             </Link>
           )}
+          <Link to={listHref} className="btn btn-default btn-sm">
+            <ClipboardList className="h-4 w-4" aria-hidden="true" />
+            Voir la liste
+          </Link>
+          <Link to={addHref} className="btn btn-brand btn-lg">
+            <PlusCircle className="h-4 w-4" aria-hidden="true" />
+            Nouvelle inscription
+          </Link>
         </div>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <KpiCard
           icon={<Users className="h-4 w-4" />}
           iconClass="bg-slate-100 text-slate-700"
           label="Inscriptions"
           value={(stats?.total ?? 0).toLocaleString('fr-FR')}
-          hint={
-            stats && stats.avgTicket > 0
-              ? `Panier moyen ${formatAmount(stats.avgTicket)}`
-              : undefined
-          }
+          hint={stats && stats.average > 0 ? `Moyenne par inscription : ${formatAmount(stats.average)}` : undefined}
         />
         <KpiCard
           icon={<Coins className="h-4 w-4" />}
@@ -285,50 +196,34 @@ const Home: React.FC = () => {
           iconClass="bg-blue-100 text-blue-700"
           label="Aujourd'hui"
           value={(stats?.todayCount ?? 0).toLocaleString('fr-FR')}
-          hint={stats && stats.todayCount > 0 ? formatAmount(stats.todayAmount) : '—'}
+          hint={stats && stats.todayCount > 0 ? formatAmount(stats.todayAmount) : 'Aucune aujourd’hui'}
         />
         <KpiCard
           icon={<CalendarRange className="h-4 w-4" />}
           iconClass="bg-violet-100 text-violet-700"
           label="Ce mois-ci"
           value={(stats?.monthCount ?? 0).toLocaleString('fr-FR')}
-          hint={stats && stats.monthCount > 0 ? formatAmount(stats.monthAmount) : '—'}
+          hint={stats && stats.monthCount > 0 ? formatAmount(stats.monthAmount) : 'Aucune ce mois-ci'}
         />
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Link to={addHref} className="btn btn-primary">
-          <PlusCircle className="h-3.5 w-3.5" />
-          Nouvelle inscription
-        </Link>
-        <Link to="/registrations" className="btn btn-default">
-          <ClipboardList className="h-3.5 w-3.5" />
-          Voir la liste
-        </Link>
       </div>
 
       {isEmpty ? (
         <div className="panel p-8 text-center">
-          <Users className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm font-medium text-gray-700 mb-1">
+          <Users className="h-8 w-8 text-ink-muted mx-auto mb-2" aria-hidden="true" />
+          <p className="text-sm font-semibold text-ink mb-1">
             Aucune inscription pour {currentActivity?.name ?? 'cette activité'}
           </p>
-          <p className="text-xs text-gray-500 mb-4">
-            Créez la première inscription pour cette activité.
-          </p>
+          <p className="text-sm text-ink-muted mb-4">Créez la première inscription pour cette activité.</p>
           <Link to={addHref} className="btn btn-primary">
-            <PlusCircle className="h-3.5 w-3.5" />
+            <PlusCircle className="h-3.5 w-3.5" aria-hidden="true" />
             Créer une inscription
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <PaymentBreakdownCard breakdown={stats!.breakdown} />
-
-          <ActivityDetailsCard activity={currentActivity} daysToEvent={daysToEvent} />
-
-          <RecentRegistrationsCard recent={stats!.recent} />
+          <PaymentBreakdownCard today={stats.todayBreakdown} all={stats.breakdown} addHref={addHref} />
+          <ActivityDetailsCard activity={currentActivity} />
+          <RecentRegistrationsCard recent={stats.recent} listHref={listHref} />
         </div>
       )}
     </div>

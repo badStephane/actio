@@ -5,6 +5,7 @@ import { getRegistrations, addRegistrationsBulk } from '../utils/storage';
 import {
   parseFile,
   validateRows,
+  fillAddressesFromContacts,
   downloadTemplate,
   ParseResult,
 } from '../utils/importRegistrations';
@@ -69,7 +70,8 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
         return;
       }
       const existing = await getRegistrations();
-      setResult(validateRows(rawRows, activity, existing));
+      // D19 : adresses vides complétées par le carnet de contacts (même clé que les doublons).
+      setResult(await fillAddressesFromContacts(validateRows(rawRows, activity, existing)));
       setIsMissingConfirmed(false);
       setPhase('preview');
     } catch (err) {
@@ -152,7 +154,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
                 <ul className="space-y-0.5 text-gray-700">
                   <li><b>Nom</b>, <b>Prénoms</b>, <b>Téléphone</b>, <b>Adresse</b> : requis</li>
                   <li><b>Montant</b> : entier en F CFA, sans décimales (montant par défaut de l'activité si la cellule est vide)</li>
-                  <li><b>Type de paiement</b> : espèce, wave ou orange money (espèce si vide)</li>
+                  <li><b>Mode de paiement</b> : espèces, wave ou orange money (colonne absente : espèces)</li>
                   <li><b>Date d'inscription</b> : AAAA-MM-JJ ou JJ/MM/AAAA (date du jour si vide)</li>
                 </ul>
               </div>

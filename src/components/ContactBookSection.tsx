@@ -182,7 +182,7 @@ const ContactBookSection: React.FC = () => {
           <>
             <label
               htmlFor="contact-source-label"
-              className="block text-[11px] font-medium text-gray-600 mb-1"
+              className="block text-xs font-medium text-gray-600 mb-1"
             >
               Étiquette de la source
             </label>
@@ -194,7 +194,7 @@ const ContactBookSection: React.FC = () => {
               placeholder="Ex. Liste 2024"
               className="input-field mb-2"
             />
-            <p className="text-[11px] text-gray-500 mb-2">
+            <p className="text-xs text-gray-600 mb-2">
               Format attendu (sans en-tête possible) : <b>N</b>, <b>Nom</b>, <b>Prénom</b>,{' '}
               <b>Adresse</b>, <b>Téléphone</b>, séparés par tabulation, virgule ou Excel.
             </p>
@@ -245,19 +245,19 @@ const ContactBookSection: React.FC = () => {
             </p>
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="panel px-2 py-1.5 border-l-2 border-l-emerald-500 bg-white">
-                <div className="text-[10px] uppercase tracking-wider text-emerald-700">À ajouter</div>
+                <div className="text-xs text-emerald-700">À ajouter</div>
                 <div className="text-sm font-semibold text-gray-900 tabular-nums">
                   {importResult.valid.length}
                 </div>
               </div>
               <div className="panel px-2 py-1.5 border-l-2 border-l-amber-400 bg-white">
-                <div className="text-[10px] uppercase tracking-wider text-amber-700">Doublons</div>
+                <div className="text-xs text-amber-700">Doublons</div>
                 <div className="text-sm font-semibold text-gray-900 tabular-nums">
                   {importResult.duplicates.length}
                 </div>
               </div>
               <div className="panel px-2 py-1.5 border-l-2 border-l-red-500 bg-white">
-                <div className="text-[10px] uppercase tracking-wider text-red-700">Erreurs</div>
+                <div className="text-xs text-red-700">Erreurs</div>
                 <div className="text-sm font-semibold text-gray-900 tabular-nums">
                   {importResult.invalid.length}
                 </div>

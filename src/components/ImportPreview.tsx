@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, BookUser } from 'lucide-react';
 import { Activity } from '../types';
 import { ParseResult, ParsedRow } from '../utils/importRegistrations';
 import { formatAmount } from './uiFormat';
@@ -10,12 +10,16 @@ type MissingColumn = ParseResult['missingColumns'][number];
 const PREVIEW_LIMIT = 50;
 const ERROR_LIMIT = 50;
 
+/** Lignes importées dont l'adresse vient du carnet (D19). */
+const countAddressesFromContacts = (result: ParseResult): number =>
+  result.valid.filter(r => r.addressFromContacts).length;
+
 const missingColumnText = (column: MissingColumn, activity: Activity): string => {
   switch (column) {
     case 'amount':
       return `Montant : chaque ligne prendra le montant par défaut de l'activité (${formatAmount(activity.defaultAmount ?? 0)}).`;
     case 'paymentType':
-      return 'Type de paiement : chaque ligne sera enregistrée en « Espèces ».';
+      return 'Mode de paiement : chaque ligne sera enregistrée en « Espèces ».';
     case 'registrationDate':
       return 'Date d\'inscription : chaque ligne prendra la date du jour.';
   }
@@ -36,7 +40,7 @@ interface ImportPreviewProps {
 
 const SummaryCard: React.FC<{ label: string; value: string; tone: string }> = ({ label, value, tone }) => (
   <div className={`panel px-3 py-2 border-l-2 ${tone}`}>
-    <div className="text-[10px] font-medium uppercase tracking-wider text-gray-700">{label}</div>
+    <div className="text-xs font-medium text-gray-700">{label}</div>
     <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{value}</div>
   </div>
 );
@@ -86,6 +90,18 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
         </div>
       )}
 
+      {countAddressesFromContacts(result) > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-gray-700">
+          <BookUser className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {countAddressesFromContacts(result)} adresse(s) vide(s) reprise(s) du carnet de contacts.
+        </p>
+      )}
+      {result.contactLookupFailed && (
+        <p role="status" className="text-xs text-amber-900">
+          Carnet de contacts illisible : les adresses vides restent vides (elles sont facultatives).
+        </p>
+      )}
+
       {result.unrecognizedHeaders.length > 0 && (
         <p className="text-xs text-gray-700">
           <b>Colonnes ignorées</b> (non reconnues) : {result.unrecognizedHeaders.join(', ')}
@@ -104,8 +120,9 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
                   <th className="text-left px-2 py-1.5 font-medium text-gray-700">Ligne</th>
                   <th className="text-left px-2 py-1.5 font-medium text-gray-700">Nom Prénoms</th>
                   <th className="text-left px-2 py-1.5 font-medium text-gray-700">Téléphone</th>
+                  <th className="text-left px-2 py-1.5 font-medium text-gray-700">Adresse</th>
                   <th className="text-right px-2 py-1.5 font-medium text-gray-700">Montant lu</th>
-                  <th className="text-left px-2 py-1.5 font-medium text-gray-700">Paiement</th>
+                  <th className="text-left px-2 py-1.5 font-medium text-gray-700">Mode de paiement</th>
                   <th className="text-left px-2 py-1.5 font-medium text-gray-700">Date</th>
                 </tr>
               </thead>
@@ -115,6 +132,12 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
                     <td className="px-2 py-1.5 text-gray-600 tabular-nums">{r.rowNumber}</td>
                     <td className="px-2 py-1.5 text-gray-900">{r.data?.lastName} {r.data?.firstName}</td>
                     <td className="px-2 py-1.5 text-gray-700 tabular-nums">{r.data?.phone}</td>
+                    <td className="px-2 py-1.5 text-gray-700">
+                      {r.data?.address}
+                      {r.addressFromContacts && (
+                        <span className="block text-gray-600 italic">adresse reprise du carnet</span>
+                      )}
+                    </td>
                     <td className="px-2 py-1.5 text-right text-gray-900 tabular-nums">{formatAmount(r.amount)}</td>
                     <td className="px-2 py-1.5 text-gray-700">{r.data ? paymentLabel(r.data.paymentType) : ''}</td>
                     <td className="px-2 py-1.5 text-gray-700 tabular-nums">{r.data?.registrationDate}</td>
@@ -122,7 +145,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
                 ))}
                 {result.valid.length > PREVIEW_LIMIT && (
                   <tr>
-                    <td colSpan={6} className="px-2 py-1.5 text-gray-600 italic text-center">
+                    <td colSpan={7} className="px-2 py-1.5 text-gray-600 italic text-center">
                       ...et {result.valid.length - PREVIEW_LIMIT} autre(s), comprises dans le total
                     </td>
                   </tr>

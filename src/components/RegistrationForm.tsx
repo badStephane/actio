@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Eraser, List, Save, X } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { addRegistration, getRegistrationById, updateRegistration, findDuplicateRegistration } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
@@ -13,7 +13,7 @@ import ActivityBar from './ActivityBar';
 import IdentityFields from './IdentityFields';
 import PaymentSegment from './PaymentSegment';
 import SessionPanel from './SessionPanel';
-import { AmountField, DateField, RegistrationFormSkeleton, RegistrationNotFound, SavedBanner } from './RegistrationFormParts';
+import { AmountField, DateField, FormActions, RegistrationFormSkeleton, RegistrationNotFound, SavedBanner } from './RegistrationFormParts';
 import {
   RegistrationFormState,
   RegistrationFormErrors,
@@ -207,7 +207,8 @@ const RegistrationForm: React.FC = () => {
     releaseSubmit();
   };
 
-  const returnPath = returnsToEntry ? '/add' : listHrefOf(formData.activityId);
+  // Depuis la Liste : retour sans paramètre, la Liste rouvre sa liste, ses filtres et sa page (U14).
+  const returnPath = returnsToEntry ? '/add' : '/registrations';
 
   const persist = async () => {
     const payload = buildRegistrationPayload(formData);
@@ -289,7 +290,7 @@ const RegistrationForm: React.FC = () => {
   const isSubmitDisabled = isSubmitting || activitiesState !== 'ready';
 
   return (
-    <div className="px-6 py-5">
+    <div className="px-6 py-5 short:py-3">
       <div className="flex flex-col xl:flex-row xl:items-start gap-6">
         <form onSubmit={handleSubmit} className="panel rounded-card shadow-card w-full max-w-[45rem]" noValidate>
           <ActivityBar
@@ -304,7 +305,7 @@ const RegistrationForm: React.FC = () => {
 
           <SavedBanner saved={isEditMode ? null : lastSaved} />
 
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 short:py-3 short:gap-3">
             <IdentityFields
               form={formData}
               errors={errors}
@@ -348,42 +349,14 @@ const RegistrationForm: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 bg-surface-subtle rounded-b-card">
-            {isEditMode ? (
-              <span />
-            ) : (
-              <button type="button" onClick={handleClearEntry} className="btn btn-ghost btn-lg">
-                <Eraser className="h-4 w-4" aria-hidden="true" />
-                Effacer la saisie
-              </button>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {isEditMode ? (
-                <button type="button" onClick={() => navigate(returnPath)} className="btn btn-default btn-lg">
-                  <X className="h-4 w-4" aria-hidden="true" />
-                  Annuler
-                </button>
-              ) : (
-                <Link to={listHrefOf(formData.activityId)} className="btn btn-default btn-lg">
-                  <List className="h-4 w-4" aria-hidden="true" />
-                  Voir la liste
-                </Link>
-              )}
-              <button
-                type="submit"
-                disabled={isSubmitDisabled}
-                aria-busy={isSubmitting}
-                aria-keyshortcuts="Enter"
-                className="btn btn-brand btn-lg disabled:opacity-60 disabled:pointer-events-none"
-              >
-                <Save className="h-4 w-4" aria-hidden="true" />
-                {isSubmitting
-                  ? isEditMode ? 'Mise à jour...' : 'Enregistrement...'
-                  : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
-                <kbd className="kbd border-white/60 text-white" aria-hidden="true">Entrée</kbd>
-              </button>
-            </div>
-          </div>
+          <FormActions
+            isEditMode={isEditMode}
+            isSubmitting={isSubmitting}
+            isSubmitDisabled={isSubmitDisabled}
+            listHref={listHrefOf(formData.activityId)}
+            onClear={handleClearEntry}
+            onCancel={() => navigate(returnPath)}
+          />
         </form>
 
         {!isEditMode && (

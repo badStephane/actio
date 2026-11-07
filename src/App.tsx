@@ -50,7 +50,7 @@ function PageHeader() {
   if (!title) return null;
 
   return (
-    <div className="px-6 pt-5 pb-0">
+    <div className="px-6 pt-5 short:pt-3 pb-0">
       <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
     </div>
   );
@@ -178,7 +178,7 @@ function AppShell() {
 
             {/* Version footer */}
             <div className="px-4 py-3 border-t border-gray-800">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              <p className="text-xs text-gray-400">
                 Actio{version ? ` v${version}` : ''}
               </p>
             </div>
@@ -187,7 +187,7 @@ function AppShell() {
           {/* Main content */}
           <main className="flex-1 overflow-auto bg-gray-100 flex flex-col min-w-0">
             {/* Mobile top bar */}
-            <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white">
+            <div className="lg:hidden flex items-center gap-3 px-4 py-3 short:py-2 border-b border-gray-200 bg-white">
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-1 -ml-1 text-gray-600 hover:text-gray-900"

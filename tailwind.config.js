@@ -5,6 +5,8 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Écrans bas (900×600, portable avec barre des tâches) : espacements compacts (Lot 2, a).
+      screens: { short: { raw: '(max-height: 699px)' } },
       colors: {
         brand: { 50: '#EEF4FB', 100: '#D9E6F6', 500: '#4B85CD', 600: '#2563B8', 700: '#1E4F94', 900: '#192A49' },
         ink: { DEFAULT: '#111827', soft: '#374151', muted: '#4B5563' },

@@ -14,9 +14,15 @@ vi.mock('xlsx', async (importOriginal) => {
   };
 });
 
+// Carnet de contacts simulé pour la reprise d'adresse (D19).
+const contactMocks = vi.hoisted(() => ({ searchContacts: vi.fn() }));
+vi.mock('./contacts', () => ({ searchContacts: contactMocks.searchContacts }));
+
 import {
   analyzeHeaders,
   downloadTemplate,
+  fillAddressesFromContacts,
+  lookupContactAddress,
   MAX_IMPORT_FILE_BYTES,
   normalizeHeader,
   parseFile,
@@ -311,5 +317,55 @@ describe('parseFile sur de vrais classeurs', () => {
     expect(result.valid[0]?.data).toMatchObject({
       lastName: 'Bâ', firstName: 'Aïssatou', address: 'Médina', amount: 5000, registrationDate: '2026-04-03',
     });
+  });
+});
+
+describe('reprise de l’adresse depuis le carnet (D19)', () => {
+  const contact = (overrides: Record<string, unknown> = {}) => ({
+    id: 'c1', lastName: 'DIOP', firstName: 'Awa', phone: '+221 77 123 45 67', address: 'Médina, rue 5', createdAt: 1, ...overrides,
+  });
+
+  it('adresse vide + même personne et même téléphone dans le carnet : adresse reprise et signalée', async () => {
+    const parsed = validateRows([row({ Adresse: '' }), row({ Nom: 'Fall', 'Téléphone': '78 000 00 01', Adresse: '' })], ACTIVITY, []);
+    const lookup = vi.fn(async (lastName: string) => (lastName === 'Diop' ? 'Médina, rue 5' : undefined));
+    const result = await fillAddressesFromContacts(parsed, lookup);
+    expect(result.valid[0].data?.address).toBe('Médina, rue 5');
+    expect(result.valid[0].addressFromContacts).toBe(true);
+    expect(result.valid[1].data?.address).toBe('');
+    expect(result.valid[1].addressFromContacts).toBeUndefined();
+    expect(parsed.valid[0].data?.address).toBe(''); // entrée non modifiée
+  });
+
+  it('une adresse présente dans le fichier n’est jamais remplacée ; une seule recherche par personne', async () => {
+    const parsed = validateRows(
+      [row({ Adresse: 'Thiès' }), row({ Adresse: '' }), row({ Adresse: '' })],
+      ACTIVITY,
+      []
+    );
+    const lookup = vi.fn(async () => 'Médina');
+    const result = await fillAddressesFromContacts(parsed, lookup);
+    expect(result.valid[0].data?.address).toBe('Thiès');
+    expect(result.duplicates.map((r) => r.data?.address)).toEqual(['Médina', 'Médina']);
+    expect(lookup).toHaveBeenCalledTimes(1);
+  });
+
+  it('carnet illisible : import possible, adresses vides, échec signalé', async () => {
+    const parsed = validateRows([row({ Adresse: '' })], ACTIVITY, []);
+    const result = await fillAddressesFromContacts(parsed, async () => { throw new Error('database is locked'); });
+    expect(result.valid[0].data?.address).toBe('');
+    expect(result.contactLookupFailed).toBe(true);
+  });
+
+  it('lookupContactAddress : même clé que les doublons (nom, prénoms, 9 derniers chiffres)', async () => {
+    contactMocks.searchContacts.mockResolvedValue([
+      contact({ firstName: 'Awa Marie' }), // autre prénom : ignoré
+      contact({ address: '  ' }), // sans adresse : ignoré
+      contact({ lastName: 'Diop', phone: '771234567', address: 'Médina' }),
+    ]);
+    expect(await lookupContactAddress('Diop', 'Awa', '77 123 45 67')).toBe('Médina');
+    expect(contactMocks.searchContacts).toHaveBeenCalledWith('771234567', 50);
+    contactMocks.searchContacts.mockResolvedValue([contact({ phone: '76 000 00 00' })]);
+    expect(await lookupContactAddress('Diop', 'Awa', '77 123 45 67')).toBeUndefined();
+    expect(await lookupContactAddress('Diop', 'Awa', '12')).toBeUndefined();
   });
 });

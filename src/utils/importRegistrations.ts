@@ -2,8 +2,9 @@ import * as XLSX from 'xlsx';
 import { Activity, Registration } from '../types';
 import { parseAmountXof } from './amount';
 import { isRealDate, isValidIsoDate, todayLocalIso, toIsoDateString } from './dates';
-import { personKey } from './phone';
+import { personKey, phoneKey } from './phone';
 import { readWorkbook } from './spreadsheet';
+import { searchContacts } from './contacts';
 
 export type ImportableRegistration = Omit<Registration, 'id' | 'createdAt'>;
 
@@ -20,6 +21,8 @@ export interface ParsedRow {
   /** Première erreur (compatibilité de l'aperçu existant). */
   error?: string;
   duplicate?: boolean;
+  /** D19 : adresse vide dans le fichier, reprise du carnet de contacts. */
+  addressFromContacts?: boolean;
 }
 
 export interface ParseResult {
@@ -31,6 +34,8 @@ export interface ParseResult {
   unrecognizedHeaders: string[];
   /** Somme des montants des lignes valides (celles qui seront importées). */
   totalAmount: number;
+  /** Carnet illisible pendant la reprise des adresses : les adresses vides le restent. */
+  contactLookupFailed?: boolean;
 }
 
 export const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
@@ -296,6 +301,75 @@ export const validateRows = (
     missingColumns,
     unrecognizedHeaders,
     totalAmount: valid.reduce((sum, r) => sum + r.amount, 0),
+  };
+};
+
+/** Recherche de l'adresse d'un inscrit dans le carnet ; undefined si inconnu ou sans adresse. */
+export type ContactAddressLookup = (lastName: string, firstName: string, phone: string) => Promise<string | undefined>;
+
+/** Recherches lancées en parallèle par paquets, pour ne pas saturer la base sur un gros fichier. */
+const CONTACT_LOOKUP_BATCH = 25;
+/** Plafond de résultats de `searchContacts` (contacts.ts). */
+const CONTACT_SEARCH_LIMIT = 50;
+
+/**
+ * D19 : cherche le contact par les chiffres de son téléphone (fonction existante du carnet),
+ * puis garde celui qui a la même clé personne + téléphone que la détection de doublons (D9).
+ */
+export const lookupContactAddress: ContactAddressLookup = async (lastName, firstName, phone) => {
+  const digits = phoneKey(phone);
+  if (digits.length < MIN_PHONE_DIGITS) return undefined;
+  const key = personKey(lastName, firstName, phone);
+  const candidates = await searchContacts(digits, CONTACT_SEARCH_LIMIT);
+  const match = candidates.find((c) => c.address.trim() && personKey(c.lastName, c.firstName, c.phone) === key);
+  return match?.address.trim();
+};
+
+const needsAddress = (r: ParsedRow): r is ParsedRow & { data: ImportableRegistration } =>
+  r.data !== undefined && r.data.address === '';
+
+const rowKey = (d: ImportableRegistration): string => personKey(d.lastName, d.firstName, d.phone);
+
+/**
+ * D19 : complète les adresses vides (lignes valides et doublons) avec l'adresse du carnet.
+ * Une recherche en échec n'empêche pas l'import (l'adresse est facultative) : elle est signalée
+ * par `contactLookupFailed`. Renvoie un nouveau résultat, l'entrée n'est pas modifiée.
+ */
+export const fillAddressesFromContacts = async (
+  result: ParseResult,
+  lookup: ContactAddressLookup = lookupContactAddress
+): Promise<ParseResult> => {
+  const targets = [...result.valid, ...result.duplicates].filter(needsAddress);
+  const uniqueRows = [...new Map(targets.map((r) => [rowKey(r.data), r.data])).values()];
+  const found = new Map<string, string>();
+  let hasFailed = false;
+
+  for (let i = 0; i < uniqueRows.length; i += CONTACT_LOOKUP_BATCH) {
+    const batch = uniqueRows.slice(i, i + CONTACT_LOOKUP_BATCH);
+    const answers = await Promise.all(
+      batch.map((d) =>
+        lookup(d.lastName, d.firstName, d.phone).catch(() => {
+          hasFailed = true;
+          return undefined;
+        })
+      )
+    );
+    batch.forEach((d, j) => {
+      const address = answers[j]?.trim();
+      if (address) found.set(rowKey(d), address.slice(0, MAX_ADDRESS_LENGTH));
+    });
+  }
+
+  const fill = (r: ParsedRow): ParsedRow => {
+    if (!needsAddress(r)) return r;
+    const address = found.get(rowKey(r.data));
+    return address ? { ...r, data: { ...r.data, address }, addressFromContacts: true } : r;
+  };
+  return {
+    ...result,
+    valid: result.valid.map(fill),
+    duplicates: result.duplicates.map(fill),
+    ...(hasFailed ? { contactLookupFailed: true } : {}),
   };
 };
 
