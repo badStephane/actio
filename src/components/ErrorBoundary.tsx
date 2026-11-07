@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+import { TriangleExclamationPoint, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -52,7 +52,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         }
       >
         <div role="alert" className="panel p-8 text-center max-w-md w-full">
-          <AlertTriangle className="h-10 w-10 text-amber-700 mx-auto mb-3" aria-hidden="true" />
+          <TriangleExclamationPoint className="h-10 w-10 text-amber-700 mx-auto mb-3" aria-hidden="true" />
           <h2 className="text-base font-semibold text-gray-800 mb-1">
             Une erreur inattendue est survenue
           </h2>

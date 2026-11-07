@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyRound, X, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, X, CircleExclamationPoint, CircleCheckBig, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from './authContext';
 import { MIN_PASSWORD_LENGTH } from '../utils/auth';
 import { useRetryCountdown, formatWait } from './useRetryCountdown';
@@ -111,7 +111,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
 
         {success ? (
           <div className="p-6 text-center" role="status">
-            <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-2" aria-hidden="true" />
+            <CircleCheckBig className="h-10 w-10 text-emerald-600 mx-auto mb-2" aria-hidden="true" />
             <p className="text-sm font-medium text-emerald-800">Mot de passe mis à jour.</p>
             <p className="text-xs text-gray-600 mt-1">
               Votre code de récupération reste valable : inutile d'en créer un nouveau.
@@ -179,7 +179,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
 
             {error && (
               <div role="alert" className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>
                   {error}
                   {isWaiting && ` Nouvel essai possible dans ${formatWait(secondsLeft)}.`}

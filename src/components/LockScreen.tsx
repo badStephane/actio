@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock, Eye, EyeOff, AlertCircle, ShieldCheck, KeyRound, Info } from 'lucide-react';
+import { Lock, Eye, EyeOff, CircleExclamationPoint, ShieldCheck, KeyRound, Info } from 'lucide-react';
 import actioLogo from '../assets/brand/actio-logo.svg';
 import { createInitialPassword, verifyPassword, MIN_PASSWORD_LENGTH } from '../utils/auth';
 import { useRetryCountdown, formatWait } from './useRetryCountdown';
@@ -181,7 +181,7 @@ const LockScreen: React.FC<LockScreenProps> = ({ mode, overlay = false, onUnlock
               role="alert"
               className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700"
             >
-              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <span>
                 {error}
                 {isWaiting && <> Nouvel essai possible dans <b className="tabular-nums">{formatWait(secondsLeft)}</b>.</>}

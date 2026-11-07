@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, ArchiveRestore, BarChart3, CalendarDays, Download, FileUp, Lock, Pencil, Trash2, Users } from 'lucide-react';
+import { Archive, ArchiveArrowUp, ChartColumn, CalendarDays, Download, FileUp, Lock, Pencil, Trash, Users } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { formatAmount, formatDateShort } from './uiFormat';
 
@@ -78,7 +78,7 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
         {count > 0 && (
           <>
             <button type="button" onClick={() => onStats(a)} className="btn btn-default btn-sm" aria-label={`Statistiques de ${a.name}`}>
-              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              <ChartColumn className="h-4 w-4" aria-hidden="true" />
               Statistiques
             </button>
             <button type="button" onClick={() => onExport(a)} className="btn btn-default btn-sm" aria-label={`Exporter les inscriptions de ${a.name} en Excel`}>
@@ -102,12 +102,12 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
             className="text-ink-soft hover:bg-gray-100"
             onClick={() => onArchive(a)}
           >
-            {isArchived ? <ArchiveRestore className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
+            {isArchived ? <ArchiveArrowUp className="h-4 w-4" aria-hidden="true" /> : <Archive className="h-4 w-4" aria-hidden="true" />}
           </IconAction>
         )}
         {canDelete && (
           <IconAction label={`Supprimer ${a.name}`} tooltip="Supprimer" className="text-danger hover:bg-danger-soft" onClick={() => onDelete(a)}>
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <Trash className="h-4 w-4" aria-hidden="true" />
           </IconAction>
         )}
       </div>

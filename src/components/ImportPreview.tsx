@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, AlertTriangle, BookUser } from 'lucide-react';
+import { CircleExclamationPoint, TriangleExclamationPoint, BookUser } from 'lucide-react';
 import { Activity } from '../types';
 import { ParseResult, ParsedRow } from '../utils/importRegistrations';
 import { formatAmount } from './uiFormat';
@@ -64,7 +64,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
     <div className="px-4 py-3 space-y-3">
       {error && (
         <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
@@ -72,7 +72,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
       {result.missingColumns.length > 0 && (
         <div role="alert" className="px-3 py-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-900 space-y-2">
           <p className="flex items-center gap-1.5 font-semibold">
-            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+            <TriangleExclamationPoint className="h-3.5 w-3.5" aria-hidden="true" />
             Colonnes attendues introuvables dans le fichier
           </p>
           <ul className="list-disc pl-5 space-y-0.5">

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LifeBuoy, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { LifeBuoy, X, CircleExclamationPoint, Eye, EyeOff } from 'lucide-react';
 import {
   verifyRecoveryCode,
   updatePassword,
@@ -27,7 +27,7 @@ const STEP_TITLE: Record<Step, string> = {
 
 const ErrorBox: React.FC<{ message: string }> = ({ message }) => (
   <div role="alert" className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+    <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
     <span>{message}</span>
   </div>
 );

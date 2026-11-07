@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CalendarDays, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { CalendarDays, X, CircleExclamationPoint, CircleCheckBig } from 'lucide-react';
 import { Activity } from '../types';
 import { addActivity, updateActivity } from '../utils/activities';
 
@@ -139,7 +139,7 @@ const ActivityFormModal: React.FC<ActivityFormModalProps> = ({ open, activity, o
 
         {success ? (
           <div className="p-6 text-center">
-            <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
+            <CircleCheckBig className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
             <p className="text-sm font-medium text-emerald-700">
               {isEdit ? 'Activité modifiée.' : 'Activité créée.'}
             </p>
@@ -215,7 +215,7 @@ const ActivityFormModal: React.FC<ActivityFormModalProps> = ({ open, activity, o
 
             {error && (
               <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}

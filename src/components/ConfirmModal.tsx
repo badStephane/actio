@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { TriangleExclamationPoint, X } from 'lucide-react';
 
 interface ConfirmModalProps {
   open: boolean;
@@ -112,7 +112,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2 min-w-0">
             {variant === 'danger' && (
-              <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
+              <TriangleExclamationPoint className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
             )}
             <h3 id="confirm-modal-title" className="text-sm font-semibold text-gray-800 truncate">
               {title}

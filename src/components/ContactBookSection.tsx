@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BookUser, FileUp, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookUser, FileUp, Trash, CircleExclamationPoint, CircleCheckBig } from 'lucide-react';
 import {
   countContacts,
   listSources,
@@ -169,7 +169,7 @@ const ContactBookSection: React.FC = () => {
                       aria-label={`Supprimer ${s.source}`}
                       title="Supprimer cette source"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash className="h-3 w-3" />
                     </button>
                   </div>
                 </li>
@@ -202,7 +202,7 @@ const ContactBookSection: React.FC = () => {
 
             {importError && (
               <div className="flex items-start gap-2 px-2 py-1.5 mb-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 <span>{importError}</span>
               </div>
             )}
@@ -223,7 +223,7 @@ const ContactBookSection: React.FC = () => {
                   onClick={() => setClearTarget('all')}
                   className="btn btn-default text-red-600 hover:text-red-700"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash className="h-3.5 w-3.5" />
                   Vider le carnet
                 </button>
               )}
@@ -299,7 +299,7 @@ const ContactBookSection: React.FC = () => {
                 disabled={importing || importResult.valid.length === 0}
                 className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
               >
-                <CheckCircle className="h-3.5 w-3.5" />
+                <CircleCheckBig className="h-3.5 w-3.5" />
                 {importing
                   ? 'Import…'
                   : `Ajouter ${importResult.valid.length} contact${importResult.valid.length > 1 ? 's' : ''}`}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle, AlertCircle, X } from 'lucide-react';
+import { CircleCheckBig, CircleExclamationPoint, X } from 'lucide-react';
 
 export type ToastVariant = 'success' | 'error';
 
@@ -54,7 +54,7 @@ const Toast: React.FC<ToastProps> = ({
   if (!rendered) return null;
 
   const isError = variant === 'error';
-  const Icon = isError ? AlertCircle : CheckCircle;
+  const Icon = isError ? CircleExclamationPoint : CircleCheckBig;
   const accent = isError ? 'border-l-4 border-red-500' : 'border-l-4 border-emerald-500';
   const iconClass = isError ? 'text-red-600' : 'text-emerald-600';
 

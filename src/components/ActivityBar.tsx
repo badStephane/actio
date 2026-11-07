@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { TriangleExclamationPoint, RefreshCw } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { isPastActivity } from './currentActivity';
 import { FieldError } from './RegistrationFormParts';
@@ -57,7 +57,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({
         </select>
         {selected && isPastActivity(selected) && !selected.archivedAt && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning-line bg-warning-soft text-xs font-semibold text-warning">
-            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+            <TriangleExclamationPoint className="h-3 w-3" aria-hidden="true" />
             Événement passé
           </span>
         )}

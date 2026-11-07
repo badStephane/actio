@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FileUp, X, AlertCircle, CheckCircle, Download, FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { FileUp, X, CircleExclamationPoint, CircleCheckBig, Download, FileSpreadsheet, TriangleExclamationPoint } from 'lucide-react';
 import { Activity } from '../types';
 import { getRegistrations, addRegistrationsBulk } from '../utils/storage';
 import {
@@ -163,7 +163,7 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
 
               {error && (
                 <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
                   <span>{error}</span>
                 </div>
               )}
@@ -248,13 +248,13 @@ const ImportRegistrationsModal: React.FC<ImportRegistrationsModalProps> = ({
           <>
             {renderHeader('Terminé')}
             <div className="p-8 text-center" role="status">
-              <CheckCircle className="h-12 w-12 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
+              <CircleCheckBig className="h-12 w-12 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
               <p className="text-base font-semibold text-gray-900">
                 {importedCount} inscription{importedCount > 1 ? 's' : ''} importée{importedCount > 1 ? 's' : ''}
               </p>
               {result && (result.duplicates.length > 0 || result.invalid.length > 0) && (
                 <p className="text-xs text-gray-600 mt-2 inline-flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                  <TriangleExclamationPoint className="h-3 w-3" aria-hidden="true" />
                   {result.duplicates.length} doublon{result.duplicates.length > 1 ? 's' : ''} ignoré{result.duplicates.length > 1 ? 's' : ''},{' '}
                   {result.invalid.length} erreur{result.invalid.length > 1 ? 's' : ''}
                 </p>

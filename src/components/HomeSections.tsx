@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, Clock, Hourglass, PlusCircle } from 'lucide-react';
+import { TriangleExclamationPoint, CalendarDays, Clock, Hourglass, CirclePlus } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateLong } from './uiFormat';
 import { PAYMENT_META } from './paymentMeta';
@@ -22,7 +22,7 @@ export const ActivityStatusBadge: React.FC<{ status: ActivityStatus }> = ({ stat
   if (status.kind === 'past') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning-line bg-warning-soft text-xs font-semibold text-warning">
-        <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+        <TriangleExclamationPoint className="h-3.5 w-3.5" aria-hidden="true" />
         Terminée le {formatDateLong(status.eventDate)}
       </span>
     );
@@ -81,7 +81,7 @@ export const PaymentBreakdownCard: React.FC<PaymentBreakdownCardProps> = ({ toda
             {scope === 'today' ? 'Aucune inscription aujourd’hui.' : 'Aucune inscription pour cette activité.'}
           </p>
           <Link to={addHref} className="inline-flex items-center gap-1 min-h-[24px] text-sm font-semibold text-brand-700 underline">
-            <PlusCircle className="h-4 w-4" aria-hidden="true" />
+            <CirclePlus className="h-4 w-4" aria-hidden="true" />
             Nouvelle inscription
           </Link>
         </div>

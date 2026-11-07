@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, Download } from 'lucide-react';
+import { ArrowLeft, CircleExclamationPoint, Download } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
@@ -137,7 +137,7 @@ const ActivityStats: React.FC = () => {
     return (
       <div className="p-6">
         <div className="panel p-8 text-center max-w-md mx-auto">
-          <AlertCircle className="h-10 w-10 text-danger mx-auto mb-3" aria-hidden="true" />
+          <CircleExclamationPoint className="h-10 w-10 text-danger mx-auto mb-3" aria-hidden="true" />
           <h2 className="text-base font-semibold text-ink mb-1">Activité introuvable</h2>
           <button type="button" onClick={() => navigate('/activities')} className="btn btn-primary mt-4">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />

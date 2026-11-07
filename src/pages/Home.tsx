@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusCircle, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, BarChart3 } from 'lucide-react';
+import { CirclePlus, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, ChartColumn } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
@@ -170,7 +170,7 @@ const Home: React.FC = () => {
           </label>
           {currentActivity && (
             <Link to={`/activities/${currentActivity.id}/stats`} className="btn btn-default btn-sm">
-              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              <ChartColumn className="h-4 w-4" aria-hidden="true" />
               Statistiques
             </Link>
           )}
@@ -179,7 +179,7 @@ const Home: React.FC = () => {
             Voir la liste
           </Link>
           <Link to={addHref} className="btn btn-brand btn-lg">
-            <PlusCircle className="h-4 w-4" aria-hidden="true" />
+            <CirclePlus className="h-4 w-4" aria-hidden="true" />
             Nouvelle inscription
           </Link>
         </div>
@@ -223,7 +223,7 @@ const Home: React.FC = () => {
           </p>
           <p className="text-sm text-ink-muted mb-4">Créez la première inscription pour cette activité.</p>
           <Link to={addHref} className="btn btn-primary">
-            <PlusCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            <CirclePlus className="h-3.5 w-3.5" aria-hidden="true" />
             Créer une inscription
           </Link>
         </div>

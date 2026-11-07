@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Wand2 } from 'lucide-react';
+import { Check, WandSparkles } from 'lucide-react';
 import { Activity } from '../types';
 import { SuspiciousRegistration } from '../utils/importReview';
 import { formatAmount } from './uiFormat';
@@ -63,7 +63,7 @@ const ImportReviewRow: React.FC<ImportReviewRowProps> = ({
               aria-label={`Appliquer la suggestion pour ${fullName}`}
               className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
             >
-              <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <WandSparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Appliquer la suggestion
             </button>
           )}

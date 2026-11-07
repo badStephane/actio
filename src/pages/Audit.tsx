@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { History, Trash2, RefreshCw } from 'lucide-react';
+import { RotateCcwClock, Trash, RefreshCw } from 'lucide-react';
 import { AuditEvent, EntityType, EventType, getAuditEvents, clearAuditLog } from '../utils/audit';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
@@ -187,7 +187,7 @@ const Audit: React.FC = () => {
             disabled={events.length === 0}
             className="btn btn-danger-ghost btn-sm disabled:opacity-50 disabled:pointer-events-none"
           >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <Trash className="h-4 w-4" aria-hidden="true" />
             Effacer l'historique
           </button>
         </div>
@@ -196,7 +196,7 @@ const Audit: React.FC = () => {
       <div className="flex-1 overflow-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64">
-            <History className="h-10 w-10 mb-3 text-ink-muted" aria-hidden="true" />
+            <RotateCcwClock className="h-10 w-10 mb-3 text-ink-muted" aria-hidden="true" />
             <p className="text-sm font-semibold text-ink-soft">
               {events.length === 0 ? 'Aucun événement' : 'Aucun résultat pour ces filtres'}
             </p>

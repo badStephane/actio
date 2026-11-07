@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Info, Wand2 } from 'lucide-react';
+import { CircleCheckBig, Info, WandSparkles } from 'lucide-react';
 import { findSuspiciousRegistrations, markReviewed, SuspiciousRegistration } from '../utils/importReview';
 import { updateRegistration } from '../utils/storage';
 import { getActivities } from '../utils/activities';
@@ -137,7 +137,7 @@ const ImportReview: React.FC = () => {
     return (
       <div className="page">
         <div className="panel p-8 text-center" role="status">
-          <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
+          <CircleCheckBig className="h-10 w-10 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
           <p className="text-sm font-semibold text-gray-800">Aucune inscription à vérifier</p>
           {processedCount > 0 && (
             <p className="text-xs text-gray-600 mt-1">{processedCount} inscription(s) vérifiée(s) pendant cette session.</p>
@@ -180,7 +180,7 @@ const ImportReview: React.FC = () => {
             disabled={isAnyBusy}
             className="btn btn-default disabled:opacity-50 disabled:pointer-events-none"
           >
-            <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+            <WandSparkles className="h-3.5 w-3.5" aria-hidden="true" />
             Appliquer toutes les suggestions ({withSuggestion.length})
           </button>
         )}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateShort } from './uiFormat';
 import PaymentBadge from './PaymentBadge';
@@ -118,7 +118,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                     title="Supprimer"
                     className="btn-icon text-danger hover:bg-danger-soft"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    <Trash className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </td>
