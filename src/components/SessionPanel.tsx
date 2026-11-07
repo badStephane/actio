@@ -28,7 +28,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ entries, activityName, list
   const olderCount = entries.length - visible.length;
 
   return (
-    <aside aria-labelledby="session-title" className="panel rounded-card shadow-card w-full xl:w-[21rem] shrink-0">
+    <aside aria-labelledby="session-title" className="panel rounded-card shadow-card w-full xl:w-84 shrink-0">
       <h2 id="session-title" className="px-4 py-3 border-b border-gray-200 text-sm font-semibold text-ink">
         Saisies de cette session{activityName ? ` · ${activityName}` : ''}
       </h2>

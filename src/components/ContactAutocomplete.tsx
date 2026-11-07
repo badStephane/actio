@@ -172,7 +172,7 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <BookUser className="h-4 w-4 text-ink-muted flex-shrink-0" aria-hidden="true" />
+                  <BookUser className="h-4 w-4 text-ink-muted shrink-0" aria-hidden="true" />
                   <span className="font-semibold text-ink truncate">
                     {c.lastName} {c.firstName}
                   </span>

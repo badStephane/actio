@@ -63,14 +63,14 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
 
     <div className="px-4 py-3 space-y-3">
       {error && (
-        <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-          <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+        <div role="alert" className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700">
+          <CircleExclamationPoint className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}
 
       {result.missingColumns.length > 0 && (
-        <div role="alert" className="px-3 py-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-900 space-y-2">
+        <div role="alert" className="px-3 py-2 bg-amber-50 border border-amber-300 rounded-sm text-xs text-amber-900 space-y-2">
           <p className="flex items-center gap-1.5 font-semibold">
             <TriangleExclamationPoint className="h-3.5 w-3.5" aria-hidden="true" />
             Colonnes attendues introuvables dans le fichier
@@ -113,7 +113,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
           <summary className="cursor-pointer text-emerald-800 font-medium mb-1">
             Aperçu des inscriptions valides ({result.valid.length})
           </summary>
-          <div className="overflow-x-auto mt-2 border border-gray-200 rounded max-h-64">
+          <div className="overflow-x-auto mt-2 border border-gray-200 rounded-sm max-h-64">
             <table className="w-full text-xs">
               <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                 <tr>
@@ -180,7 +180,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
           <ul className="mt-2 space-y-1 text-gray-800">
             {result.invalid.slice(0, ERROR_LIMIT).map(r => (
               <li key={r.rowNumber} className="flex gap-2">
-                <span className="text-gray-600 tabular-nums flex-shrink-0">L.{r.rowNumber}</span>
+                <span className="text-gray-600 tabular-nums shrink-0">L.{r.rowNumber}</span>
                 <span>{rowErrors(r).join(' ; ')}</span>
               </li>
             ))}

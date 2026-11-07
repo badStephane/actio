@@ -31,8 +31,8 @@ const StatsSkeleton: React.FC = () => (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="panel p-4">
-          <div className="skeleton h-3 w-24 rounded mb-2" />
-          <div className="skeleton h-7 w-16 rounded" />
+          <div className="skeleton h-3 w-24 rounded-sm mb-2" />
+          <div className="skeleton h-7 w-16 rounded-sm" />
         </div>
       ))}
     </div>
@@ -161,7 +161,7 @@ const ActivityStats: React.FC = () => {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="inline-block w-3 h-3 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: activity.color }} aria-hidden="true" />
+          <span className="inline-block w-3 h-3 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: activity.color }} aria-hidden="true" />
           <h1 className="text-xl font-semibold text-ink truncate">Statistiques · {activity.name}</h1>
           {activity.eventDate && (
             <span className="text-sm text-ink-muted tabular-nums">· {formatDateShort(activity.eventDate)}</span>

@@ -51,7 +51,7 @@ export const PAYMENT_META: Readonly<Record<PaymentType, PaymentMeta>> = {
     type: 'wave',
     label: 'Wave',
     logo: waveLogo,
-    logoClass: 'rounded-sm',
+    logoClass: 'rounded-xs',
     shortcut: '2',
     textClass: 'text-wave',
     fillClass: 'bg-wave-fill',

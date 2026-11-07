@@ -123,7 +123,7 @@ const ImportReview: React.FC = () => {
   if (loadState === 'loading') {
     return (
       <div className="page space-y-2" aria-busy="true">
-        {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton h-10 rounded" />)}
+        {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton h-10 rounded-sm" />)}
         <span className="sr-only">Recherche des inscriptions à vérifier...</span>
       </div>
     );
@@ -156,7 +156,7 @@ const ImportReview: React.FC = () => {
   return (
     <div className="page space-y-3">
       <div className="panel p-3 flex items-start gap-2 text-xs text-gray-700">
-        <Info className="h-4 w-4 text-brand-600 flex-shrink-0 mt-px" aria-hidden="true" />
+        <Info className="h-4 w-4 text-brand-600 shrink-0 mt-px" aria-hidden="true" />
         <p>
           Ces inscriptions viennent d'imports Excel où des montants ou des dates ont pu être mal lus. Rien n'est
           corrigé automatiquement : comparez avec votre fichier ou vos reçus, puis appliquez la suggestion ou

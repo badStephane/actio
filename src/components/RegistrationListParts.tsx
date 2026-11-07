@@ -10,21 +10,21 @@ export const RegistrationListSkeleton: React.FC = () => (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="panel px-3 py-2">
-          <div className="skeleton h-2.5 w-16 rounded mb-1.5" />
-          <div className="skeleton h-4 w-20 rounded" />
+          <div className="skeleton h-2.5 w-16 rounded-sm mb-1.5" />
+          <div className="skeleton h-4 w-20 rounded-sm" />
         </div>
       ))}
     </div>
     <div className="toolbar border rounded-card">
-      <div className="skeleton h-7 w-48 rounded" />
-      <div className="skeleton h-7 w-36 rounded" />
-      <div className="skeleton h-7 w-32 rounded" />
-      <div className="skeleton h-7 w-20 rounded ml-2" />
-      <div className="skeleton h-7 w-28 rounded" />
+      <div className="skeleton h-7 w-48 rounded-sm" />
+      <div className="skeleton h-7 w-36 rounded-sm" />
+      <div className="skeleton h-7 w-32 rounded-sm" />
+      <div className="skeleton h-7 w-20 rounded-sm ml-2" />
+      <div className="skeleton h-7 w-28 rounded-sm" />
     </div>
     <div className="panel flex-1 overflow-hidden p-3 space-y-2">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="skeleton h-8 rounded" />
+        <div key={i} className="skeleton h-8 rounded-sm" />
       ))}
     </div>
     <span className="sr-only">Chargement des inscriptions...</span>
@@ -107,10 +107,10 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
         key={a.id}
         type="button"
         onClick={() => onSelect(a.id)}
-        className="panel p-4 text-left hover:border-brand-500 hover:shadow-sm transition-all duration-fast group"
+        className="panel p-4 text-left hover:border-brand-500 hover:shadow-xs transition-all duration-fast group"
       >
         <div className="flex items-start gap-2 mb-2">
-          <span className="h-3 w-3 rounded-full flex-shrink-0 mt-1" style={{ backgroundColor: a.color }} aria-hidden="true" />
+          <span className="h-3 w-3 rounded-full shrink-0 mt-1" style={{ backgroundColor: a.color }} aria-hidden="true" />
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-brand-700">{a.name}</h3>
             {isArchived && (
@@ -141,10 +141,10 @@ export const ActivityPicker: React.FC<ActivityPickerProps> = ({ activities, regi
         <button
           type="button"
           onClick={() => onSelect('')}
-          className="panel p-4 text-left hover:border-brand-400 hover:shadow-sm transition-all duration-100 group border-l-2 border-l-brand-400"
+          className="panel p-4 text-left hover:border-brand-400 hover:shadow-xs transition-all duration-100 group border-l-2 border-l-brand-400"
         >
           <div className="flex items-start gap-2 mb-2">
-            <Layers className="h-3.5 w-3.5 text-brand-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Layers className="h-3.5 w-3.5 text-brand-600 shrink-0 mt-0.5" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold text-gray-900 group-hover:text-brand-700">Toutes les inscriptions</h3>
               <p className="text-xs text-gray-600 mt-0.5">Vue globale, toutes activités confondues</p>

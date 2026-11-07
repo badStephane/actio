@@ -152,16 +152,16 @@ export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
 );
 
 export const RegistrationFormSkeleton: React.FC = () => (
-  <div className="px-6 py-5 max-w-[45rem]" aria-busy="true">
+  <div className="px-6 py-5 max-w-180" aria-busy="true">
     <div className="panel p-4 space-y-4">
-      <div className="skeleton h-10 w-72 rounded" />
+      <div className="skeleton h-10 w-72 rounded-sm" />
       <div className="grid grid-cols-2 gap-4">
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
-        <div className="skeleton h-11 rounded" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
+        <div className="skeleton h-11 rounded-sm" />
       </div>
-      <div className="skeleton h-11 w-2/3 rounded" />
+      <div className="skeleton h-11 w-2/3 rounded-sm" />
     </div>
     <span className="sr-only">Chargement de l'inscription...</span>
   </div>

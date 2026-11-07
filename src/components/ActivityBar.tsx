@@ -45,7 +45,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({
           disabled={isLoading || hasLoadError}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'activityId-error' : undefined}
-          className={`input-field h-10 w-auto max-w-[22rem] font-semibold text-ink ${error ? 'has-error' : ''}`}
+          className={`input-field h-10 w-auto max-w-88 font-semibold text-ink ${error ? 'has-error' : ''}`}
         >
           {isLoading ? (
             <option value="">Chargement des activités...</option>

@@ -99,9 +99,9 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
           <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
             <div className="flex items-center gap-2 min-w-0" aria-live="polite">
               {isError ? (
-                <CircleExclamationPoint className="h-4 w-4 text-red-600 flex-shrink-0" aria-hidden="true" />
+                <CircleExclamationPoint className="h-4 w-4 text-red-600 shrink-0" aria-hidden="true" />
               ) : (
-                <CircleArrowDown className="h-4 w-4 text-brand-600 flex-shrink-0" aria-hidden="true" />
+                <CircleArrowDown className="h-4 w-4 text-brand-600 shrink-0" aria-hidden="true" />
               )}
               <h3 className="text-sm font-semibold text-gray-800 truncate">
                 {installPhase === 'none' && `Mise à jour ${update?.version ?? ''} disponible`}
@@ -113,7 +113,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
             {canDismiss && (
               <button
                 onClick={() => setDismissed(true)}
-                className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+                className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
                 aria-label="Plus tard"
               >
                 <X className="h-4 w-4" />
@@ -152,7 +152,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ children }) => {
 
             {installPhase === 'downloading' && (
               <>
-                <div className="h-2 bg-gray-200 rounded overflow-hidden mb-2" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-2 bg-gray-200 rounded-sm overflow-hidden mb-2" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
                   <div className="h-full bg-brand-600 transition-all duration-150" style={{ width: `${percent}%` }} />
                 </div>
                 <p className="text-xs text-gray-600 tabular-nums">

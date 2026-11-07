@@ -46,6 +46,9 @@
         "type": "offlineInstaller"
       }
     },
+    "macOS": {
+      "minimumSystemVersion": "13.3"
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

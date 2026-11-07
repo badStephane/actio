@@ -113,14 +113,14 @@ const Audit: React.FC = () => {
     return (
       <div className="page h-full flex flex-col" aria-busy="true">
         <div className="toolbar border rounded-card">
-          <div className="skeleton h-7 w-40 rounded" />
-          <div className="skeleton h-7 w-32 rounded" />
-          <div className="skeleton h-7 w-48 rounded" />
+          <div className="skeleton h-7 w-40 rounded-sm" />
+          <div className="skeleton h-7 w-32 rounded-sm" />
+          <div className="skeleton h-7 w-48 rounded-sm" />
         </div>
         <div className="flex-1 overflow-hidden">
           <div className="space-y-2 p-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="skeleton h-10 rounded" />
+              <div key={i} className="skeleton h-10 rounded-sm" />
             ))}
           </div>
         </div>
@@ -218,7 +218,7 @@ const Audit: React.FC = () => {
                     {formatDateTime(e.createdAt)}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-semibold ${EVENT_BADGE[e.eventType] ?? 'bg-gray-100 text-gray-700'}`}>
                       {EVENT_LABEL[e.eventType] ?? e.eventType}
                     </span>
                   </td>

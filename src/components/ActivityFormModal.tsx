@@ -214,8 +214,8 @@ const ActivityFormModal: React.FC<ActivityFormModalProps> = ({ open, activity, o
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <CircleExclamationPoint className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded-sm text-xs text-red-700">
+                <CircleExclamationPoint className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
             )}

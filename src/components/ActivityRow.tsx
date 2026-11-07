@@ -44,8 +44,8 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
 
   return (
     <div className="panel px-3 py-2.5 flex flex-wrap items-center gap-3">
-      <span className="h-3 w-3 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: a.color }} aria-hidden="true" />
-      <div className="flex-1 min-w-[12rem]">
+      <span className="h-3 w-3 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: a.color }} aria-hidden="true" />
+      <div className="flex-1 min-w-48">
         <div className="flex items-center gap-2">
           <h3 className={`text-sm font-semibold truncate ${isArchived ? 'text-ink-muted' : 'text-ink'}`}>{a.name}</h3>
           {isDefault && (
@@ -74,7 +74,7 @@ const ActivityRow: React.FC<ActivityRowProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 flex-shrink-0">
+      <div className="flex flex-wrap items-center gap-1 shrink-0">
         {count > 0 && (
           <>
             <button type="button" onClick={() => onStats(a)} className="btn btn-default btn-sm" aria-label={`Statistiques de ${a.name}`}>
@@ -120,15 +120,15 @@ export default ActivityRow;
 /** Chargement des activités (U28) : 4 lignes en skeleton plutôt qu'un spinner. */
 export const ActivityListSkeleton: React.FC = () => (
   <div className="page space-y-2" aria-busy="true">
-    <div className="flex justify-end mb-4"><div className="skeleton h-8 w-40 rounded" /></div>
+    <div className="flex justify-end mb-4"><div className="skeleton h-8 w-40 rounded-sm" /></div>
     {Array.from({ length: 4 }).map((_, i) => (
       <div key={i} className="panel px-3 py-3 flex items-center gap-3">
         <div className="skeleton h-3 w-3 rounded-full" />
         <div className="flex-1 space-y-1.5">
-          <div className="skeleton h-3.5 w-48 rounded" />
-          <div className="skeleton h-3 w-32 rounded" />
+          <div className="skeleton h-3.5 w-48 rounded-sm" />
+          <div className="skeleton h-3 w-32 rounded-sm" />
         </div>
-        <div className="skeleton h-8 w-28 rounded" />
+        <div className="skeleton h-8 w-28 rounded-sm" />
       </div>
     ))}
     <span className="sr-only">Chargement des activités...</span>

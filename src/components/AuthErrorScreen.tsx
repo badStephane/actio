@@ -31,7 +31,7 @@ const AuthErrorScreen: React.FC<AuthErrorScreenProps> = ({ detail, onRetry }) =>
           fenêtres d'Actio puis réessayez.
         </p>
         {detail && (
-          <p className="text-xs text-gray-600 font-mono break-words bg-gray-50 border border-gray-200 rounded px-2 py-1 mb-3">
+          <p className="text-xs text-gray-600 font-mono wrap-break-word bg-gray-50 border border-gray-200 rounded-sm px-2 py-1 mb-3">
             {detail}
           </p>
         )}

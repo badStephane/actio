@@ -31,12 +31,12 @@ const RegistrationListToolbar: React.FC<RegistrationListToolbarProps> = ({
       <h2 className="inline-flex items-center gap-1.5 min-w-0 text-base font-semibold text-ink" aria-live="polite">
         {filters.activity ? (
           <>
-            <span className="h-2.5 w-2.5 rounded-full flex-shrink-0 border border-gray-500" style={{ backgroundColor: selectedActivity?.color ?? '#9CA3AF' }} aria-hidden="true" />
+            <span className="h-2.5 w-2.5 rounded-full shrink-0 border border-gray-500" style={{ backgroundColor: selectedActivity?.color ?? '#9CA3AF' }} aria-hidden="true" />
             <span className="truncate">{selectedActivity?.name ?? 'Activité supprimée'}</span>
           </>
         ) : (
           <>
-            <Layers className="h-4 w-4 text-ink-muted flex-shrink-0" aria-hidden="true" />
+            <Layers className="h-4 w-4 text-ink-muted shrink-0" aria-hidden="true" />
             <span className="truncate">Toutes les activités</span>
           </>
         )}

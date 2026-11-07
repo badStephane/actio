@@ -31,12 +31,12 @@ interface DashboardData {
 
 const HomeSkeleton: React.FC = () => (
   <div className="page" aria-busy="true">
-    <div className="skeleton h-14 w-full rounded mb-4" />
+    <div className="skeleton h-14 w-full rounded-sm mb-4" />
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="panel p-4">
-          <div className="skeleton h-3 w-24 rounded mb-2" />
-          <div className="skeleton h-7 w-20 rounded" />
+          <div className="skeleton h-3 w-24 rounded-sm mb-2" />
+          <div className="skeleton h-7 w-20 rounded-sm" />
         </div>
       ))}
     </div>
@@ -158,7 +158,7 @@ const Home: React.FC = () => {
               value={currentActivityId}
               onChange={(e) => setCurrentActivityId(e.target.value)}
               title="Changer l'activité affichée"
-              className="input-field w-auto max-w-[15rem] h-control"
+              className="input-field w-auto max-w-60 h-control"
             >
               {liveActivities.map(a => (
                 <option key={a.id} value={a.id}>

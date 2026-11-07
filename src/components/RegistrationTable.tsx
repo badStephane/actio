@@ -83,7 +83,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
               <td className="px-3 py-2">
                 {activity ? (
                   <span className="inline-flex items-center gap-1.5 max-w-[160px]">
-                    <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: activity.color }} aria-hidden="true" />
+                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: activity.color }} aria-hidden="true" />
                     <span className="truncate text-ink-soft" title={activity.name}>{activity.name}</span>
                   </span>
                 ) : (
