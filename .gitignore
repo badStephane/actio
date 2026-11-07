@@ -39,3 +39,6 @@ coverage
 .env
 .env.local
 .env.*.local
+
+# Worktrees des agents Claude Code
+.claude/worktrees/
