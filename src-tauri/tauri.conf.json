@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Gestion des Inscriptions",
-  "version": "2.1.0-rc.1",
+  "productName": "Actio",
+  "version": "2.1.0-rc.2",
   "identifier": "com.badstephane.gestion-inscription",
   "build": {
     "frontendDist": "../dist",
@@ -44,6 +44,9 @@
     "windows": {
       "webviewInstallMode": {
         "type": "offlineInstaller"
+      },
+      "nsis": {
+        "installerHooks": "./windows/hooks.nsh"
       }
     },
     "android": {
