@@ -1,15 +1,13 @@
 # 05 - Construction : dernières versions de la pile front (2.2.0)
 
-Date : 2026-11-07. Rôle : Développeur Front-End (P5). Branche `chore/deps-2.2.0`, partie de `main` 6051528 (66c9dfb + Dependabot #4).
+Date : 2026-11-07. Rôle : Développeur Front-End (P5). Branche `chore/deps-2.2.0`, partie de `main` 6051528, `main` bff8b53 (2.1.0-rc.2) fusionné. Version **2.2.0-rc.1**.
 Captures : `docs/squad/deps-2.2.0/` (`<écran>_<largeur>_avant|apres.png`).
 
 ## Hypothèses
 - HF1 : « dernière version » = tag npm `latest` au 2026-11-07, sauf contrainte de compatibilité écrite ci-dessous.
-- HF2 : react-router reste en 7 (demande 6 vers 7) alors que la 8.5.1 est sortie (exige Node >= 22.22, React >= 19.2.7).
-- HF3 : WebView2 est evergreen sur les postes Windows (>= Chromium 111). Non vérifié sur le parc.
+- HF2 : WebView2 est evergreen sur les postes Windows (>= Chromium 111). Non vérifié sur le parc.
 
 ## Paquets
-
 | Paquet | Avant | Après | Changements de code |
 |---|---|---|---|
 | vitest, @vitest/coverage-v8 | 3.2.7 | 5.1.0 | aucun |
@@ -24,7 +22,7 @@ Captures : `docs/squad/deps-2.2.0/` (`<écran>_<largeur>_avant|apres.png`).
 | @types/node | absent | 22.20.5 | ajouté (Node 22 de la CI) : `tsc -p tsconfig.node.json` repasse au vert (il échouait avant) |
 | lucide-react | 0.344.0 | 1.70.0 | 12 icônes n'existaient plus qu'en alias, renommées : AlertCircle > CircleExclamationPoint, AlertTriangle > TriangleExclamationPoint, ArchiveRestore > ArchiveArrowUp, ArrowDownCircle > CircleArrowDown, BarChart3 > ChartColumn, CheckCircle > CircleCheckBig, CheckCircle2 > CircleCheck, History > RotateCcwClock, Home > House, PlusCircle > CirclePlus, Trash2 > Trash, Wand2 > WandSparkles. Passé avant React (0.344 bloque React 19) |
 | react, react-dom ; @types/react, @types/react-dom | 18.3.1 ; 18.3.11 / 18.3.0 | 19.3.1 ; 19.3.0 | aucun |
-| react-router-dom | 6.30.0 | retiré | remplacé par `react-router` 7.18.5 (recommandation officielle v7) : 20 imports modifiés |
+| react-router-dom | 6.30.0 | retiré | remplacé par `react-router` (7.18.5, puis **8.5.1** sur décision PM) : 20 imports modifiés ; ruptures v8 sans objet en mode déclaratif |
 | tailwindcss | 3.4.13 | 4.3.5 + `@tailwindcss/vite` | voir ci-dessous |
 | postcss, autoprefixer | 8.5.32 / 10.6.2 | retirés | inutiles avec le plugin Vite (postcss reste une dépendance de Vite) |
 | recharts, @testing-library/react, /dom | 3.10.1, 16.3.3, 10.4.2 | inchangés | déjà les dernières |
@@ -38,55 +36,58 @@ Captures : `docs/squad/deps-2.2.0/` (`<écran>_<largeur>_avant|apres.png`).
 - compatibilité v3 : bordure par défaut gray-200, placeholder gray-400, curseur main sur les boutons ;
 - palette v3 figée en hex pour les 10 familles utilisées (gray, slate, red, amber, emerald, orange, sky, indigo, violet, purple) :
   la palette oklch v4 décalait jusqu'à 5 niveaux (amber-800 #92400E > #973C00, emerald-700 #047857 > #007A55) et les contrastes du plan design portent sur ces hex ;
+- sources limitées comme en v3 (`source(none)` + `@source` index.html et src) : la détection auto lisait docs/ (CSS 49,5 > 46,6 Ko) ;
 - plugin officiel `@tailwindcss/vite` ; `postcss.config.js` supprimé. **src-tauri** : seule ligne ajoutée, `bundle.macOS.minimumSystemVersion: "13.3"` dans `tauri.conf.json`.
 
-## Résultat des commandes (après la dernière étape, puis après `npm ci` propre)
+## Fusion de main et version
+`git merge main` (bff8b53) sans conflit textuel : `tauri.conf.json` garde productName Actio, le hook NSIS et la version de main, plus
+`minimumSystemVersion` ; `package.json` garde les @tauri-apps/* de main ; `npm install` ne modifie pas le lockfile (@tauri-apps identiques à main).
+CI : `node-version: '>=22.22.2 <23'` aux 2 occurrences de `build.yml`. Version 2.2.0-rc.1 dans package.json/lock, tauri.conf, Cargo.toml/lock.
 
+## Résultat des commandes (HEAD de la branche)
 | Commande | Résultat |
 |---|---|
-| `npm test` | 16 fichiers, 246 passés, 1 ignoré (247), identique à l'avant ; couverture 92,5 % lignes |
+| `npm test` | 16 fichiers, 247 passés (le test ACL, ignoré avant, tourne une fois `src-tauri/gen` généré par cargo) ; couverture 92,5 % |
 | `npx tsc -p tsconfig.app.json --noEmit` | 0 erreur (et tsconfig.node : 0 erreur) |
 | `npm run lint` | 0 erreur, 0 avertissement |
 | `VITE_DEMO_MODE=true npx vite build` | OK ; aussi OK avec `TAURI_ENV_PLATFORM=windows`, `darwin` et `TAURI_ENV_DEBUG` |
-| Parcours de navigation (Chrome, démo) | sidebar, Statistiques, retour, Ctrl+N, filtre par URL : OK, aucune erreur console |
+| Parcours de navigation (Chrome, démo, router 8) | sidebar, Statistiques, retour, Ctrl+N, filtre par URL : OK, aucune erreur console |
+| `cd src-tauri && cargo test --locked` | OK : 5 + 1 tests passés |
+| `node --test scripts/release-guards.test.mjs` | 9/9 passés |
+| `node scripts/check-migrations.mjs v2.0.2` | OK (9 migrations publiées intactes, 12 en HEAD) |
+| `node scripts/check-release-version.mjs v2.2.0-rc.1 v2.0.2` | OK, publiée en pre-release |
 
-Poids : JS 1 301 > 1 361 Ko (gzip 399 > 415 Ko, React 19 et router 7) ; CSS 41,2 > 48,8 Ko (gzip 7,4 > 9,2 Ko, variables de thème). Portes passées après chacun des 7 commits.
+Poids : JS 1 301 > 1 360 Ko (gzip 399 > 415 Ko, React 19 et router) ; CSS 41,2 > 46,6 Ko (gzip 7,4 > 8,9 Ko, variables de thème). Portes passées après chaque commit.
 
-## Comparaison visuelle (démo, avant = commit 82e75aa, après = f482931)
+## Comparaison visuelle (démo, avant = 82e75aa, après = HEAD ; mêmes chiffres à f482931 et après router 8)
 
 Bruit mesuré entre deux captures du même build : <= 0,01 %. « Visibles » = écart > 16 niveaux sur 255.
 
 | Écran | 1366 : diff / visibles | 1920 : diff / visibles |
 |---|---|---|
 | Accueil | 0,97 % / 0,08 % | 0,51 % / 0,04 % |
-| Saisie vide | 1,17 % / 0,04 % | 0,61 % / 0,02 % |
-| Saisie après enregistrement | 1,17 % / 0,04 % | 0,61 % / 0,02 % |
-| Liste | 0,96 % / 0,06 % | 0,50 % / 0,03 % |
-| Activités | 0,96 % / 0,06 % | 0,50 % / 0,03 % |
+| Saisie vide, et après enregistrement | 1,17 % / 0,04 % | 0,61 % / 0,02 % |
+| Liste ; Activités | 0,96 % / 0,06 % | 0,50 % / 0,03 % |
 | Statistiques (graphiques rendus) | 1,34 % / 0,05 % | 0,49 % / 0,02 % |
 | Historique | 0,94 % / 0,05 % | 0,49 % / 0,02 % |
 | Contrôle des imports | 0,16 % / 0,03 % | 0,10 % / 0,02 % |
 | Préférences (modale) | 0,30 % / 0,05 % | 0,16 % / 0,03 % |
 | Écrans bas 900×600 (accueil, saisie avec focus et survol, liste, activités) | 0,13 à 0,78 % / <= 0,10 % | - |
 
-Explication des écarts > 0,5 % : ce sont des écarts de **1 niveau** sur 255, invisibles. Les opacités (`bg-white/10` de l'entrée
-active de la sidebar, filets) passent par `color-mix()` en v4 : (48,64,92) devient (48,63,91), la valeur exacte du mélange.
-Les écarts visibles (<= 0,1 %) sont les tracés lucide 1.x retouchés au sous-pixel (mêmes formes, vérifié à la loupe).
-Aucun décalage de mise en page : aucune ligne ou colonne entière décalée sur aucun écran. L'avant et l'après de la capture CLI
-des statistiques diffèrent selon l'instant de l'animation recharts : c'est pourquoi la ligne Statistiques porte sur `stats-rendu`.
+Écarts > 0,5 % : **1 niveau** sur 255, invisible ; les opacités (`bg-white/10` de la sidebar, filets) passent par `color-mix()` en v4 :
+(48,64,92) devient (48,63,91), la valeur exacte du mélange. Écarts visibles (<= 0,1 %) : tracés lucide 1.x retouchés au sous-pixel
+(mêmes formes, vérifié à la loupe). Aucun décalage de mise en page. Statistiques mesurées sur `stats-rendu` (animation recharts terminée).
 
 ## Risques
-
 | Risque | Impact | Rôle |
 |---|---|---|
 | WebView2 < 111 sur un poste (version fixe, poste hors ligne jamais mis à jour) | CSS v4 non appliqué (`@layer`, `@property`) : interface cassée | SRE / QA |
-| macOS 12 et antérieurs : la 2.2.0 ne s'installe plus ; l'updater pourrait la proposer à un poste qui ne pourra pas la lancer | Poste macOS bloqué en 2.1.x ou cassé après mise à jour | SRE (filtrer `darwin` dans latest.json ou annoncer) |
+| macOS 12 et antérieurs : la 2.2.0 ne s'installe plus ; l'updater pourrait la proposer à un poste qui ne pourra pas la lancer | Poste macOS bloqué en 2.1.x ou cassé après mise à jour | PM (question posée à l'utilisateur) / SRE |
 | Démo web : navigateurs antérieurs à Safari 16.4 / Chrome 111 / Firefox 128 | Démo mal rendue | PM |
 | TypeScript bloqué en 6.0 tant que typescript-eslint n'accepte pas TS 7 | Montée à refaire plus tard | Front |
-| 20 exemptions `react-hooks/set-state-in-effect` (chargements au montage, réinitialisation des modales, animations) | Dette, pas de bug : refonte des effets à planifier hors chantier de versions | Front |
-| `eslint.config.js` garde `tseslint.config()` (déprécié au profit de `defineConfig`) : le hook de protection des configs a bloqué la modification | Fonctionne sous ESLint 10, à migrer | Front |
-| jsdom 31 et Vitest 5 exigent Node >= 22.22.2 (CI : `>=22.13 <23`, résolu en dernière 22.x) | Tests en échec si la CI tombe sur une 22.x ancienne ; poste local en 24.13 : avertissement EBADENGINE | SRE |
-| Conflits attendus avec la branche 2.1.0 : `tauri.conf.json` (bloc `bundle`), `package.json`, `package-lock.json` | Fusion manuelle ; régénérer le lockfile après fusion | Orchestrateur |
+| 20 exemptions `react-hooks/set-state-in-effect` (chargements au montage, réinitialisation des modales, animations) | Dette acceptée par le PM, refonte en 2.3 | Front |
+| `eslint.config.js` garde `tseslint.config()` (déprécié) : décision PM, le hook de protection des configs appartient à l'utilisateur | Dette, fonctionne sous ESLint 10 | Front |
+| jsdom 31, Vitest 5 et react-router 8 exigent Node >= 22.22 (CI corrigée) ; postes de dev en 24.x < 24.15 : avertissement EBADENGINE | Mettre à jour Node local | SRE |
 | `hover:` v4 ne s'applique qu'aux pointeurs capables de survol (`@media (hover: hover)`) | Pas de survol sur un poste 100 % tactile (sans effet fonctionnel) | QA |
 
 ## Reste à tester à l'exécution sous Windows (build Tauri, pas en démo)
@@ -96,4 +97,4 @@ des statistiques diffèrent selon l'instant de l'animation recharts : c'est pour
 4. Import Excel / CSV, export Excel, sauvegarde et restauration (dialogues natifs).
 5. Ctrl+N et repli F2, focus clavier visible, curseur main sur les boutons.
 6. Écran 1366×768 à 125 % et fenêtre minimale 900×600 (variante `short:`), polices Segoe UI.
-7. Mise à jour 2.1.x vers 2.2.0 par l'updater, et `tauri build` macOS avec `minimumSystemVersion` 13.3 (Info.plist).
+7. Mise à jour 2.1.0 vers 2.2.0-rc.1 par l'updater (productName Actio, hook NSIS), et `tauri build` macOS avec `minimumSystemVersion` 13.3 (Info.plist).
