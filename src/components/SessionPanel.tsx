@@ -68,7 +68,7 @@ const SessionPanel: React.FC<SessionPanelProps> = ({ entries, activityName, list
                       to={`/edit/${encodeURIComponent(entry.id)}?retour=saisie`}
                       className="inline-flex items-center min-h-[24px] px-1 text-sm font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
                     >
-                      Modifier<span className="sr-only"> l'inscription de {name}</span>
+                      Modifier{' '}<span className="sr-only">l'inscription de {name}</span>
                     </Link>
                   </span>
                 </li>

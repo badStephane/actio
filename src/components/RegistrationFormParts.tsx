@@ -143,7 +143,7 @@ export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
             to={`/edit/${encodeURIComponent(saved.id)}?retour=saisie`}
             className="ml-auto inline-flex items-center min-h-[24px] px-1 font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
           >
-            Modifier<span className="sr-only"> l'inscription de {displayName(saved)}</span>
+            Modifier{' '}<span className="sr-only">l'inscription de {displayName(saved)}</span>
           </Link>
         )}
       </div>
