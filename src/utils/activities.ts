@@ -2,6 +2,20 @@ import { Activity } from '../types';
 import { getDb } from './db';
 import { logEvent } from './audit';
 import { DEMO_MODE, demoActivities, demoRegistrations } from './demo';
+import { parseAmountXof } from './amount';
+
+export const ACTIVITY_IN_USE_MESSAGE = 'Cette activité a encore des inscriptions : archivez-la plutôt.';
+const INVALID_DEFAULT_AMOUNT_MESSAGE = 'Montant par défaut invalide : entier positif ou nul, en francs CFA.';
+
+const isForeignKeyError = (error: unknown): boolean =>
+  /FOREIGN KEY constraint failed/i.test(error instanceof Error ? error.message : String(error));
+
+/** Montant par défaut : absent, ou entier XOF >= 0 (D1). */
+const assertDefaultAmount = (amount: number | undefined): void => {
+  if (amount !== undefined && parseAmountXof(amount) === null) {
+    throw new Error(INVALID_DEFAULT_AMOUNT_MESSAGE);
+  }
+};
 
 interface Row {
   id: string;
@@ -61,6 +75,7 @@ export const getActivityById = async (id: string): Promise<Activity | null> => {
 export const addActivity = async (
   data: Omit<Activity, 'id' | 'createdAt' | 'archivedAt'>
 ): Promise<Activity> => {
+  assertDefaultAmount(data.defaultAmount);
   const newActivity: Activity = {
     ...data,
     id: crypto.randomUUID(),
@@ -91,6 +106,7 @@ export const addActivity = async (
 export const updateActivity = async (
   activity: Omit<Activity, 'createdAt' | 'archivedAt'>
 ): Promise<void> => {
+  assertDefaultAmount(activity.defaultAmount);
   if (DEMO_MODE) {
     const i = demoActivities.findIndex((a) => a.id === activity.id);
     if (i !== -1) demoActivities[i] = { ...demoActivities[i], ...activity };
@@ -151,8 +167,28 @@ export const countRegistrationsForActivity = async (id: string): Promise<number>
   return rows[0]?.n ?? 0;
 };
 
+/** Nombre d'inscriptions par activité, en une seule requête. Les activités sans inscription sont absentes. */
+export const countRegistrationsByActivity = async (): Promise<Record<string, number>> => {
+  if (DEMO_MODE) {
+    return demoRegistrations.reduce<Record<string, number>>(
+      (acc, r) => ({ ...acc, [r.activityId]: (acc[r.activityId] ?? 0) + 1 }),
+      {}
+    );
+  }
+  const db = await getDb();
+  const rows = await db.select<{ activity_id: string; n: number }[]>(
+    'SELECT activity_id, COUNT(*) AS n FROM registrations GROUP BY activity_id'
+  );
+  return Object.fromEntries(rows.map((r) => [r.activity_id, r.n]));
+};
+
+/**
+ * Supprime une activité sans inscription. Si des inscriptions la référencent, la clé
+ * étrangère (ON DELETE RESTRICT) refuse : on lève ACTIVITY_IN_USE_MESSAGE.
+ */
 export const deleteActivity = async (id: string): Promise<void> => {
   if (DEMO_MODE) {
+    if (demoRegistrations.some((r) => r.activityId === id)) throw new Error(ACTIVITY_IN_USE_MESSAGE);
     const i = demoActivities.findIndex((a) => a.id === id);
     const before = i !== -1 ? demoActivities[i] : null;
     if (i !== -1) demoActivities.splice(i, 1);
@@ -161,6 +197,11 @@ export const deleteActivity = async (id: string): Promise<void> => {
   }
   const db = await getDb();
   const before = await getActivityById(id);
-  await db.execute('DELETE FROM activities WHERE id = $1', [id]);
+  try {
+    await db.execute('DELETE FROM activities WHERE id = $1', [id]);
+  } catch (error) {
+    if (isForeignKeyError(error)) throw new Error(ACTIVITY_IN_USE_MESSAGE);
+    throw error;
+  }
   if (before) await logEvent('deleted', 'activity', id, before.name);
 };

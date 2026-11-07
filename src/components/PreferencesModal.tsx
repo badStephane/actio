@@ -1,6 +1,11 @@
 import React, { useEffect } from 'react';
-import { Settings, X, Clock } from 'lucide-react';
-import { useAuth } from './AuthGate';
+import { useNavigate } from 'react-router-dom';
+import { Settings, X, Clock, ListChecks } from 'lucide-react';
+import { useAuth } from './authContext';
+import ContactBookSection from './ContactBookSection';
+import BackupsSection from './BackupsSection';
+import EntryTimingSection from './EntryTimingSection';
+import UpdateCheckSection from './UpdateCheckSection';
 
 interface PreferencesModalProps {
   open: boolean;
@@ -17,10 +22,19 @@ const AUTO_LOCK_OPTIONS: { value: number; label: string }[] = [
 
 const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) => {
   const { autoLockMinutes, setAutoLockMinutes } = useAuth();
+  const navigate = useNavigate();
+
+  const openImportReview = () => {
+    onClose();
+    navigate('/imports/review');
+  };
 
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
+      // Une confirmation ouverte par-dessus (restauration, effacement) gère son propre Échap.
+      const activeDialog = document.activeElement?.closest('[role="dialog"]');
+      if (activeDialog && activeDialog.getAttribute('aria-labelledby') !== 'preferences-title') return;
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
@@ -38,35 +52,37 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) =>
       aria-labelledby="preferences-title"
     >
       <div
-        className="panel shadow-xl max-w-sm w-full mx-4 overflow-hidden"
+        className="panel shadow-xl max-w-lg w-full mx-4 overflow-hidden flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <Settings className="h-4 w-4 text-blue-600" />
+            <Settings className="h-4 w-4 text-brand-600" aria-hidden="true" />
             <h3 id="preferences-title" className="text-sm font-semibold text-gray-800">
               Préférences
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
             aria-label="Fermer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-5 overflow-auto">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-3.5 w-3.5 text-gray-500" />
+              <Clock className="h-3.5 w-3.5 text-gray-600" aria-hidden="true" />
               <label htmlFor="auto-lock" className="text-xs font-medium text-gray-700">
                 Verrouillage automatique
               </label>
             </div>
-            <p className="text-xs text-gray-500 mb-2">
-              Verrouille l'application après une période d'inactivité.
+            <p className="text-xs text-gray-600 mb-2">
+              Verrouille l'écran après une période d'inactivité ; une saisie en cours est conservée.
+              Le verrouillage protège l'écran, pas le fichier de données : activez aussi le
+              chiffrement du disque (BitLocker, FileVault).
             </p>
             <select
               id="auto-lock"
@@ -79,6 +95,24 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) =>
               ))}
             </select>
           </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex items-center gap-2 mb-1">
+              <ListChecks className="h-3.5 w-3.5 text-gray-600" aria-hidden="true" />
+              <h4 className="text-xs font-medium text-gray-700">Contrôle des imports</h4>
+            </div>
+            <p className="text-xs text-gray-600 mb-2">
+              Vérifie les inscriptions importées depuis Excel dont le montant ou la date a pu être mal lu.
+            </p>
+            <button type="button" onClick={openImportReview} className="btn btn-default">
+              Ouvrir le contrôle des imports
+            </button>
+          </div>
+
+          <BackupsSection />
+          <ContactBookSection />
+          <EntryTimingSection />
+          <UpdateCheckSection />
         </div>
 
         <div className="flex justify-end px-4 py-3 bg-gray-50 border-t border-gray-200">

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyRound, X, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from './AuthGate';
+import { useAuth } from './authContext';
+import { MIN_PASSWORD_LENGTH } from '../utils/auth';
+import { useRetryCountdown, formatWait } from './useRetryCountdown';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -17,6 +19,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const firstInputRef = useRef<HTMLInputElement>(null);
+  const { secondsLeft, isWaiting, start: startWait } = useRetryCountdown();
 
   useEffect(() => {
     if (!open) return;
@@ -25,6 +28,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
     setConfirm('');
     setError(null);
     setSuccess(false);
+    setShowPasswords(false);
     const t = setTimeout(() => firstInputRef.current?.focus(), 50);
     return () => clearTimeout(t);
   }, [open]);
@@ -42,14 +46,19 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy || isWaiting) return;
     setError(null);
 
+    if (next.length < MIN_PASSWORD_LENGTH) {
+      setError(`Le nouveau mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`);
+      return;
+    }
     if (next !== confirm) {
       setError('Les deux nouveaux mots de passe ne correspondent pas.');
       return;
     }
     if (next === current) {
-      setError('Le nouveau mot de passe doit etre different de l\'ancien.');
+      setError('Le nouveau mot de passe doit être différent de l\'ancien.');
       return;
     }
 
@@ -58,13 +67,18 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
     setBusy(false);
 
     if (!result.ok) {
+      if (result.retryAfterMs) startWait(result.retryAfterMs);
       setError(result.error ?? 'Erreur inconnue.');
       return;
     }
 
+    setCurrent('');
+    setNext('');
+    setConfirm('');
     setSuccess(true);
-    setTimeout(onClose, 1200);
   };
+
+  const inputsLocked = busy || isWaiting;
 
   return (
     <div
@@ -80,14 +94,14 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
       >
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-blue-600" />
+            <KeyRound className="h-4 w-4 text-brand-600" />
             <h3 id="change-password-title" className="text-sm font-semibold text-gray-800">
               Changer le mot de passe
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="btn-icon -mr-2 text-ink-muted hover:text-ink hover:bg-gray-100"
             aria-label="Fermer"
           >
             <X className="h-4 w-4" />
@@ -95,9 +109,15 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
         </div>
 
         {success ? (
-          <div className="p-6 text-center">
-            <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
-            <p className="text-sm font-medium text-emerald-700">Mot de passe mis a jour.</p>
+          <div className="p-6 text-center" role="status">
+            <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-2" aria-hidden="true" />
+            <p className="text-sm font-medium text-emerald-800">Mot de passe mis à jour.</p>
+            <p className="text-xs text-gray-600 mt-1">
+              Votre code de récupération reste valable : inutile d'en créer un nouveau.
+            </p>
+            <button type="button" onClick={onClose} className="btn btn-primary mt-4">
+              Fermer
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-4 space-y-3">
@@ -113,13 +133,13 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
                 onChange={(e) => setCurrent(e.target.value)}
                 autoComplete="current-password"
                 className="input-field"
-                disabled={busy}
+                disabled={inputsLocked}
               />
             </div>
 
             <div>
               <label htmlFor="new-pwd" className="block text-xs font-medium text-gray-600 mb-1">
-                Nouveau mot de passe
+                Nouveau mot de passe <span className="font-normal text-gray-600">(au moins {MIN_PASSWORD_LENGTH} caractères)</span>
               </label>
               <input
                 id="new-pwd"
@@ -128,7 +148,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
                 onChange={(e) => setNext(e.target.value)}
                 autoComplete="new-password"
                 className="input-field"
-                disabled={busy}
+                disabled={inputsLocked}
               />
             </div>
 
@@ -143,7 +163,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
                 onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password"
                 className="input-field"
-                disabled={busy}
+                disabled={inputsLocked}
               />
             </div>
 
@@ -157,9 +177,12 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
             </button>
 
             {error && (
-              <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div role="alert" className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  {error}
+                  {isWaiting && ` Nouvel essai possible dans ${formatWait(secondsLeft)}.`}
+                </span>
               </div>
             )}
 
@@ -169,10 +192,10 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, onClose
               </button>
               <button
                 type="submit"
-                disabled={busy || !current || !next || !confirm}
+                disabled={inputsLocked || !current || !next || !confirm}
                 className="btn btn-primary disabled:opacity-50 disabled:pointer-events-none"
               >
-                {busy ? 'Enregistrement...' : 'Mettre a jour'}
+                {busy ? 'Enregistrement...' : 'Mettre à jour'}
               </button>
             </div>
           </form>

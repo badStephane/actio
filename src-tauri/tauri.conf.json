@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Gestion des Inscriptions",
-  "version": "0.1.4",
+  "version": "2.1.0-rc.1",
   "identifier": "com.badstephane.gestion-inscription",
   "build": {
     "frontendDist": "../dist",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Gestion des Inscriptions",
+        "title": "Actio",
         "width": 1200,
         "height": 800,
         "minWidth": 900,
@@ -22,12 +22,17 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws://localhost:5173 http://localhost:5173; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "nsis",
+      "app",
+      "dmg"
+    ],
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
@@ -48,6 +53,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
+        "https://github.com/badStephane/actio/releases/latest/download/latest.json",
         "https://github.com/badStephane/Gestion_Inscription/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkzNjRCNzRFRDJGOENBMkEKUldRcXl2alNUcmRrazB0MGVMT05QdWszbWcycDNKb2lBOG90QkZWVEJHc3lOdVRzOW5RbExybXMK"

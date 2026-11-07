@@ -12,9 +12,13 @@
     @apply text-sm antialiased;
   }
 
-  /* Remove default focus ring, add custom */
+  /* U23 : anneau de focus 2 px brand-600 (>= 5,3:1 sur fonds clairs), visible en plein jour. */
   *:focus-visible {
-    @apply outline-none ring-1 ring-blue-500 ring-offset-0;
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
+  }
+  /* Sur fond sombre (sidebar) : anneau blanc. */
+  .on-dark :focus-visible {
+    @apply ring-white ring-offset-brand-900;
   }
 
   /* Scrollbar styling for desktop feel */
@@ -33,38 +37,75 @@
 }
 
 @layer components {
+  /* 3.3 : toutes les tailles en texte 14 px ; 36 px par défaut, plus aucun bouton de 28 px. */
   .btn {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded border transition-colors duration-100 select-none;
+    @apply inline-flex items-center justify-center gap-1.5 min-h-control px-3 py-1.5 text-sm font-medium rounded-control border transition-colors duration-fast select-none;
   }
+  /* Primaire aux couleurs du logo : blanc sur brand-600 5,9:1, survol brand-700 8,1:1. */
   .btn-primary {
-    @apply bg-blue-600 border-blue-700 text-white hover:bg-blue-700 active:bg-blue-800;
+    @apply bg-brand-600 border-brand-700 text-white hover:bg-brand-700 active:bg-brand-900;
   }
   .btn-default {
     @apply bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100;
   }
   .btn-success {
-    @apply bg-emerald-600 border-emerald-700 text-white hover:bg-emerald-700 active:bg-emerald-800;
+    /* m7 : emerald-700 = contraste 5,5:1 avec le blanc (emerald-600 : 3,8:1) */
+    @apply bg-emerald-700 border-emerald-800 text-white hover:bg-emerald-800 active:bg-emerald-900;
   }
   .btn-warning {
-    @apply bg-amber-500 border-amber-600 text-white hover:bg-amber-600 active:bg-amber-700;
+    /* m7 : amber-700 = contraste 5:1 avec le blanc (amber-500 : 2,1:1) */
+    @apply bg-amber-700 border-amber-800 text-white hover:bg-amber-800 active:bg-amber-900;
   }
   .btn-danger {
-    @apply bg-red-600 border-red-700 text-white hover:bg-red-700 active:bg-red-800;
+    @apply bg-danger border-red-800 text-white hover:bg-red-800 active:bg-red-900;
   }
   .btn-ghost {
     @apply bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200;
   }
+  /* Actions secondaires et lignes de tableau : 32 px, texte 14 px (Lot 2). */
+  .btn-sm {
+    @apply min-h-8 px-2.5 py-1 text-sm rounded-control;
+  }
+  /* Bouton icône seule : cible de 36 px, nom accessible obligatoire (aria-label). */
+  .btn-icon {
+    @apply inline-flex items-center justify-center h-9 w-9 rounded-control transition-colors duration-fast;
+  }
+  /* Actions du guichet : 44 px, texte 14 px (Lot 1). */
+  .btn-lg {
+    @apply min-h-control-lg px-4 text-sm font-semibold rounded-control gap-2;
+  }
+  .btn-brand {
+    @apply bg-brand-600 border-brand-700 text-white hover:bg-brand-700 active:bg-brand-900;
+  }
+  .btn-danger-ghost {
+    @apply bg-transparent border-transparent text-danger hover:bg-danger-soft;
+  }
 
+  /* U10 : bordure gray-500 (4,8:1, WCAG 1.4.11) ; focus 2 px sans décalage. */
   .input-field {
-    @apply w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded bg-white placeholder-gray-400
-           focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+    @apply w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded bg-white placeholder-gray-500
+           focus:ring-2 focus:ring-brand-600 focus:ring-offset-0 focus:border-brand-600 transition-colors;
   }
   .input-field.has-error {
-    @apply border-red-400 focus:ring-red-500 focus:border-red-500;
+    @apply border-danger focus:ring-danger focus:border-danger;
+  }
+  /* Champs du guichet : 44 px, texte 16 px. */
+  .input-lg {
+    @apply h-control-lg px-3 text-base rounded-control;
   }
 
+  .kbd {
+    @apply inline-flex items-center px-1 rounded border text-xs font-normal leading-4;
+  }
+
+  /* 3.2 : cartes et modales en 8 px avec un léger relief. */
   .panel {
-    @apply bg-white border border-gray-200 rounded;
+    @apply bg-white border border-gray-200 rounded-card shadow-card;
+  }
+
+  /* 3.2 : conteneur unique de toutes les pages ; le contenu commence à 232 px (sidebar 208 + 24). */
+  .page {
+    @apply w-full max-w-6xl px-6 py-5;
   }
 
   .toolbar {

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 120 440 260" role="img" aria-label="Espèces">
+  <!-- Billet arrière, visible en L derrière le billet avant -->
+  <rect x="50" y="138" width="325" height="184" fill="#047857"/>
+  <rect x="76" y="163" width="340" height="196" fill="#FFFFFF"/>
+  <!-- Billet avant -->
+  <rect x="102" y="190" width="301" height="157" fill="#047857"/>
+  <circle cx="242" cy="268" r="46" fill="#FFFFFF"/>
+  <!-- « F » géométrique (franc CFA) -->
+  <path d="M226 240 h36 v13 h-22 v10 h18 v13 h-18 v21 h-14 z" fill="#047857"/>
+  <!-- Pile de pièces, détourée en blanc -->
+  <g stroke="#FFFFFF" stroke-width="8">
+    <path d="M347 330 v-58 a58 25 0 0 1 116 0 v58 a58 25 0 0 1 -116 0 z" fill="#047857"/>
+  </g>
+  <g fill="none" stroke="#FFFFFF" stroke-width="7">
+    <path d="M347 302 a58 25 0 0 0 116 0"/>
+    <path d="M347 330 a58 25 0 0 0 116 0"/>
+  </g>
+  <ellipse cx="405" cy="272" rx="58" ry="25" fill="#047857" stroke="#FFFFFF" stroke-width="7"/>
+  <path d="M396 258 h20 v8 h-12 v5 h10 v8 h-10 v12 h-8 z" fill="#FFFFFF"/>
+</svg>

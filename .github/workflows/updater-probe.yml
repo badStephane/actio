@@ -1,0 +1,47 @@
+# Sonde de l'endpoint updater (SLO « manifeste disponible »).
+# Toutes les heures : les deux endpoints servent un latest.json valide (3 plateformes, signatures),
+# sa version est celle de la dernière release publiée, et chaque URL pointe vers un asset présent
+# (contrôle par l'API, sans télécharger les installeurs ni fausser leurs compteurs).
+# Un échec envoie la notification GitHub d'échec de workflow. Runbook : docs/RELEASE.md, section 5.
+name: Sonde updater
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Vérifier les endpoints
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" > release.json
+          EXPECTED=$(jq -r '.tag_name | ltrimstr("v")' release.json)
+          ASSETS=$(jq -r '.assets[] | select(.state == "uploaded") | .name' release.json)
+          for ENDPOINT in \
+            "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/latest.json" \
+            "https://github.com/badStephane/Gestion_Inscription/releases/latest/download/latest.json"; do
+            curl -fsSL --retry 3 --max-time 30 "$ENDPOINT" -o latest.json \
+              || { echo "::error::$ENDPOINT injoignable"; exit 1; }
+            jq -e --arg v "$EXPECTED" '.version == $v and
+              ([.platforms["windows-x86_64", "darwin-aarch64", "darwin-x86_64"]
+                | select(. != null and (.url | startswith("https://")) and (.signature | length > 0))] | length == 3)' \
+              latest.json > /dev/null || { echo "::error::$ENDPOINT : manifeste invalide ou version différente de $EXPECTED"; cat latest.json; exit 1; }
+            for URL in $(jq -r '[.platforms[].url] | unique | .[]' latest.json); do
+              [[ "$URL" == */download/v"$EXPECTED"/* ]] || { echo "::error::URL hors release v$EXPECTED : $URL"; exit 1; }
+              grep -qxF "$(basename "$URL")" <<< "$ASSETS" || { echo "::error::asset absent de la release : $URL"; exit 1; }
+            done
+            echo "OK : $ENDPOINT sert $EXPECTED."
+          done

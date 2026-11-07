@@ -1,61 +1,79 @@
-import React, { useEffect, useState, useRef, createContext, useContext, useCallback } from 'react';
-import { Lock, Eye, EyeOff, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   hasPassword,
-  setPassword,
-  verifyPassword,
-  resetAuthAndData,
   hasRecoveryCode,
+  verifyPassword,
+  updatePassword,
+  MIN_PASSWORD_LENGTH,
 } from '../utils/auth';
+import { resetAppData, BACKUP_DIR_LABEL } from '../utils/dbBackup';
+import { DEMO_MODE } from '../utils/demo';
+import { AuthContext, AuthContextValue, ChangePasswordResult } from './authContext';
 import ConfirmModal from './ConfirmModal';
 import RecoveryUnlockModal from './RecoveryUnlockModal';
-import { DEMO_MODE } from '../utils/demo';
+import LockScreen from './LockScreen';
+import AuthErrorScreen from './AuthErrorScreen';
+import { errorMessage } from './uiFormat';
 
 interface AuthGateProps {
   children: React.ReactNode;
 }
 
-type Phase = 'loading' | 'setup' | 'lock' | 'unlocked';
-
-const MIN_PASSWORD_LENGTH = 6;
-
-interface AuthContextValue {
-  lock: () => void;
-  changePassword: (current: string, next: string) => Promise<{ ok: boolean; error?: string }>;
-  autoLockMinutes: number;
-  setAutoLockMinutes: (minutes: number) => void;
-}
+type Phase = 'loading' | 'error' | 'setup' | 'lock' | 'unlocked';
 
 const AUTO_LOCK_STORAGE_KEY = 'autoLockMinutes';
+const RESET_CONFIRM_WORD = 'EFFACER';
+const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
+
 const readAutoLockMinutes = (): number => {
   const stored = localStorage.getItem(AUTO_LOCK_STORAGE_KEY);
   const parsed = stored ? parseInt(stored, 10) : 0;
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const RESET_MESSAGE = (
+  <>
+    <p>
+      Les inscriptions, activités, contacts, l'historique, le mot de passe et le code de
+      récupération seront supprimés de l'application.
+    </p>
+    <p>
+      Une sauvegarde automatique de l'état actuel est conservée avant l'effacement, dans :{' '}
+      <span className="font-medium text-gray-800">{BACKUP_DIR_LABEL}</span>. L'application
+      redémarrera ensuite.
+    </p>
+  </>
+);
 
-export const useAuth = (): AuthContextValue => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within <AuthGate>');
-  return ctx;
+const changePasswordWith = async (current: string, next: string): Promise<ChangePasswordResult> => {
+  if (next.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.` };
+  }
+  try {
+    const check = await verifyPassword(current);
+    if (!check.ok) {
+      return check.retryAfterMs > 0
+        ? { ok: false, error: 'Trop d\'essais incorrects. Patientez avant de réessayer.', retryAfterMs: check.retryAfterMs }
+        : { ok: false, error: 'Mot de passe actuel incorrect.' };
+    }
+    await updatePassword(next);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err, 'Erreur lors du changement de mot de passe.') };
+  }
 };
-
-export { MIN_PASSWORD_LENGTH };
 
 const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
   const [phase, setPhase] = useState<Phase>('loading');
-  const [password1, setPassword1] = useState('');
-  const [password2, setPassword2] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [hasUnlockedOnce, setHasUnlockedOnce] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const [recoveryUnlockOpen, setRecoveryUnlockOpen] = useState(false);
   const [recoveryAvailable, setRecoveryAvailable] = useState(false);
   const [autoLockMinutes, setAutoLockMinutesState] = useState<number>(readAutoLockMinutes);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const appRef = useRef<HTMLDivElement>(null);
 
   const setAutoLockMinutes = useCallback((minutes: number) => {
     const safe = Number.isFinite(minutes) && minutes >= 0 ? minutes : 0;
@@ -63,293 +81,153 @@ const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
     setAutoLockMinutesState(safe);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const exists = await hasPassword();
-        if (cancelled) return;
-        setPhase(exists ? 'lock' : 'setup');
-      } catch (err) {
-        console.error('Error checking password state:', err);
-        if (!cancelled) setPhase('setup');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const checkPasswordState = useCallback(async () => {
+    setPhase('loading');
+    setCheckError(null);
+    try {
+      const exists = await hasPassword();
+      setPhase(exists ? 'lock' : 'setup');
+    } catch (err) {
+      setCheckError(errorMessage(err, ''));
+      setPhase('error');
+    }
   }, []);
 
   useEffect(() => {
-    if (phase === 'lock' || phase === 'setup') {
-      const t = setTimeout(() => inputRef.current?.focus(), 50);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
+    void checkPasswordState();
+  }, [checkPasswordState]);
 
   useEffect(() => {
     if (phase !== 'lock') return;
     let cancelled = false;
     hasRecoveryCode()
       .then(v => { if (!cancelled) setRecoveryAvailable(v); })
-      .catch(err => {
-        console.error('Error checking recovery code:', err);
-        if (!cancelled) setRecoveryAvailable(false);
-      });
+      .catch(() => { if (!cancelled) setRecoveryAvailable(false); });
     return () => { cancelled = true; };
   }, [phase]);
 
-  const triggerShake = () => {
-    setShake(true);
-    setTimeout(() => setShake(false), 400);
-  };
+  const isOverlayLocked = phase === 'lock' && hasUnlockedOnce;
 
-  const handleSetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (password1.length < MIN_PASSWORD_LENGTH) {
-      setError(`Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`);
-      return;
-    }
-    if (password1 !== password2) {
-      setError('Les deux mots de passe ne correspondent pas.');
-      return;
-    }
-    setBusy(true);
-    try {
-      await setPassword(password1);
-      setPassword1('');
-      setPassword2('');
-      setPhase('unlocked');
-    } catch (err) {
-      console.error('Error creating password:', err);
-      setError('Impossible de créer le mot de passe. Réessayez.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  // D4 : l'application reste montée sous l'écran de verrouillage, mais inerte.
+  useEffect(() => {
+    const el = appRef.current;
+    if (!el) return;
+    if (isOverlayLocked) el.setAttribute('inert', '');
+    else el.removeAttribute('inert');
+  }, [isOverlayLocked]);
 
-  const handleUnlock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!password1) return;
-    setBusy(true);
-    try {
-      const ok = await verifyPassword(password1);
-      if (ok) {
-        setPassword1('');
-        setPhase('unlocked');
-      } else {
-        setError('Mot de passe incorrect.');
-        setPassword1('');
-        triggerShake();
-      }
-    } catch (err) {
-      console.error('Error verifying password:', err);
-      setError('Erreur lors de la vérification.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setResetOpen(false);
-    try {
-      await resetAuthAndData();
-      setPassword1('');
-      setPassword2('');
-      setError(null);
-      setPhase('setup');
-    } catch (err) {
-      console.error('Error resetting:', err);
-      setError('Erreur lors de la réinitialisation.');
-    }
-  };
-
-  const lock = useCallback(() => {
-    setPassword1('');
-    setPassword2('');
-    setError(null);
-    setPhase('lock');
+  const unlock = useCallback(() => {
+    setRecoveryUnlockOpen(false);
+    setHasUnlockedOnce(true);
+    setPhase('unlocked');
   }, []);
 
-  // Auto-lock after configured inactivity
+  const lock = useCallback(() => {
+    setPhase(prev => (prev === 'unlocked' ? 'lock' : prev));
+  }, []);
+
   useEffect(() => {
     if (phase !== 'unlocked' || autoLockMinutes <= 0) return;
     const ms = autoLockMinutes * 60 * 1000;
-    let timer = window.setTimeout(() => lock(), ms);
-    const reset = () => {
+    let timer = window.setTimeout(lock, ms);
+    const restart = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => lock(), ms);
+      timer = window.setTimeout(lock, ms);
     };
-    const events: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
-    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+    ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, restart, { passive: true }));
     return () => {
       window.clearTimeout(timer);
-      events.forEach(e => window.removeEventListener(e, reset));
+      ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, restart));
     };
   }, [phase, autoLockMinutes, lock]);
 
-  const changePassword = useCallback(
-    async (current: string, next: string): Promise<{ ok: boolean; error?: string }> => {
-      if (next.length < MIN_PASSWORD_LENGTH) {
-        return { ok: false, error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caracteres.` };
-      }
-      try {
-        const okCurrent = await verifyPassword(current);
-        if (!okCurrent) return { ok: false, error: 'Mot de passe actuel incorrect.' };
-        await setPassword(next);
-        return { ok: true };
-      } catch (err) {
-        console.error('Error changing password:', err);
-        return { ok: false, error: 'Erreur lors du changement de mot de passe.' };
-      }
-    },
-    []
+  const handleForgot = () => {
+    setResetError(null);
+    if (recoveryAvailable) setRecoveryUnlockOpen(true);
+    else setResetOpen(true);
+  };
+
+  const handleReset = async () => {
+    setIsResetting(true);
+    setResetError(null);
+    try {
+      await resetAppData();
+      // resetAppData redémarre l'application ; rechargement de repli.
+      window.location.reload();
+    } catch (err) {
+      setIsResetting(false);
+      setResetOpen(false);
+      setResetError(errorMessage(err, 'La réinitialisation a échoué. Aucune donnée n\'a été effacée.'));
+    }
+  };
+
+  const contextValue = useMemo<AuthContextValue>(
+    () => ({ lock, changePassword: changePasswordWith, autoLockMinutes, setAutoLockMinutes }),
+    [lock, autoLockMinutes, setAutoLockMinutes]
   );
 
-  if (phase === 'unlocked') {
-    return (
-      <AuthContext.Provider value={{ lock, changePassword, autoLockMinutes, setAutoLockMinutes }}>
-        {children}
-      </AuthContext.Provider>
-    );
+  if (phase === 'error') {
+    return <AuthErrorScreen detail={checkError} onRetry={() => void checkPasswordState()} />;
   }
 
-  if (phase === 'loading') {
+  if (phase === 'loading' && !hasUnlockedOnce) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+      <div className="h-full flex items-center justify-center bg-gray-100" aria-busy="true">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent" />
+        <span className="sr-only">Chargement...</span>
       </div>
     );
   }
 
-  const isSetup = phase === 'setup';
+  const lockLayer = (phase === 'lock' || phase === 'setup') && (
+    <>
+      <LockScreen
+        mode={phase === 'setup' ? 'setup' : 'unlock'}
+        overlay={hasUnlockedOnce}
+        onUnlocked={unlock}
+        onForgot={handleForgot}
+      />
+      {/* Contexte d'empilement au-dessus de l'écran de verrouillage (z-60). */}
+      <div className="relative z-[65]">
+        {resetError && (
+          <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[70] panel border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 max-w-sm">
+            {resetError}
+          </div>
+        )}
+        <ConfirmModal
+          open={resetOpen}
+          title="Réinitialiser l'application"
+          message={RESET_MESSAGE}
+          confirmLabel="Tout effacer"
+          busyLabel="Effacement..."
+          busy={isResetting}
+          confirmText={RESET_CONFIRM_WORD}
+          variant="danger"
+          onConfirm={handleReset}
+          onCancel={() => setResetOpen(false)}
+        />
+        <RecoveryUnlockModal
+          open={recoveryUnlockOpen}
+          onClose={() => setRecoveryUnlockOpen(false)}
+          onSuccess={unlock}
+          onLostCode={() => {
+            setRecoveryUnlockOpen(false);
+            setResetOpen(true);
+          }}
+        />
+      </div>
+    </>
+  );
+
+  if (!hasUnlockedOnce) return <>{lockLayer}</>;
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div
-        className={`panel shadow-2xl w-full max-w-sm mx-4 ${shake ? 'animate-shake' : ''}`}
-      >
-        <div className="px-5 pt-5 pb-3 text-center border-b border-gray-200">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 mb-3">
-            {isSetup ? (
-              <ShieldCheck className="h-6 w-6 text-blue-600" />
-            ) : (
-              <Lock className="h-6 w-6 text-blue-600" />
-            )}
-          </div>
-          <h1 className="text-base font-semibold text-gray-900">
-            {isSetup ? 'Configurer l\'accès' : 'Accès protégé'}
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">
-            {isSetup
-              ? 'Choisissez un mot de passe pour protéger l\'application.'
-              : 'Entrez votre mot de passe pour continuer.'}
-          </p>
-        </div>
-
-        <form onSubmit={isSetup ? handleSetup : handleUnlock} className="p-5 space-y-3">
-          <div>
-            <label htmlFor="password1" className="block text-xs font-medium text-gray-600 mb-1">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <input
-                ref={inputRef}
-                id="password1"
-                type={showPassword ? 'text' : 'password'}
-                value={password1}
-                onChange={(e) => setPassword1(e.target.value)}
-                autoComplete={isSetup ? 'new-password' : 'current-password'}
-                className="input-field pr-9"
-                disabled={busy}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(s => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                tabIndex={-1}
-                aria-label={showPassword ? 'Masquer' : 'Afficher'}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {isSetup && (
-            <div>
-              <label htmlFor="password2" className="block text-xs font-medium text-gray-600 mb-1">
-                Confirmer
-              </label>
-              <input
-                id="password2"
-                type={showPassword ? 'text' : 'password'}
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-                autoComplete="new-password"
-                className="input-field"
-                disabled={busy}
-              />
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-start gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-              <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy || !password1 || (isSetup && !password2)}
-            className="btn btn-primary w-full justify-center py-2 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            <KeyRound className="h-3.5 w-3.5" />
-            {busy
-              ? isSetup ? 'Création...' : 'Vérification...'
-              : isSetup ? 'Créer le mot de passe' : 'Déverrouiller'}
-          </button>
-
-          {!isSetup && (
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() =>
-                  recoveryAvailable ? setRecoveryUnlockOpen(true) : setResetOpen(true)
-                }
-                className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
-              >
-                Mot de passe oublié ?
-              </button>
-            </div>
-          )}
-        </form>
+    <AuthContext.Provider value={contextValue}>
+      <div ref={appRef} className="h-full" aria-hidden={isOverlayLocked || undefined}>
+        {children}
       </div>
-
-      <ConfirmModal
-        open={resetOpen}
-        title="Réinitialiser l'application"
-        message="Toutes les inscriptions et le mot de passe seront définitivement supprimés. Cette action est irréversible. Continuer ?"
-        confirmLabel="Tout effacer"
-        variant="danger"
-        onConfirm={handleReset}
-        onCancel={() => setResetOpen(false)}
-      />
-
-      <RecoveryUnlockModal
-        open={recoveryUnlockOpen}
-        onClose={() => setRecoveryUnlockOpen(false)}
-        onSuccess={() => {
-          setRecoveryUnlockOpen(false);
-          setPassword1('');
-          setPassword2('');
-          setError(null);
-          setPhase('unlocked');
-        }}
-      />
-    </div>
+      {lockLayer}
+    </AuthContext.Provider>
   );
 };
 
@@ -357,17 +235,15 @@ const ProtectedGate: React.FC<AuthGateProps> = ({ children }) => {
  * En mode démonstration, l'écran de verrouillage est désactivé : l'application
  * est directement accessible avec un contexte d'authentification neutralisé.
  */
+const DEMO_CONTEXT: AuthContextValue = {
+  lock: () => {},
+  changePassword: async () => ({ ok: true }),
+  autoLockMinutes: 0,
+  setAutoLockMinutes: () => {},
+};
+
 const DemoGate: React.FC<AuthGateProps> = ({ children }) => (
-  <AuthContext.Provider
-    value={{
-      lock: () => {},
-      changePassword: async () => ({ ok: true }),
-      autoLockMinutes: 0,
-      setAutoLockMinutes: () => {},
-    }}
-  >
-    {children}
-  </AuthContext.Provider>
+  <AuthContext.Provider value={DEMO_CONTEXT}>{children}</AuthContext.Provider>
 );
 
 const AuthGate: React.FC<AuthGateProps> = DEMO_MODE ? DemoGate : ProtectedGate;

@@ -1,43 +1,64 @@
-import { save, open } from '@tauri-apps/plugin-dialog';
-import { copyFile, BaseDirectory } from '@tauri-apps/plugin-fs';
-import { appDataDir, join } from '@tauri-apps/api/path';
-import { getDb } from './db';
+import { invoke } from '@tauri-apps/api/core';
 import { DEMO_MODE } from './demo';
 
-const DB_FILENAME = 'inscriptions.db';
+/**
+ * Sauvegarde, restauration et réinitialisation passent par des commandes Rust
+ * (src-tauri/src/commands.rs) : les boîtes de dialogue s'ouvrent côté Rust, l'instantané
+ * est cohérent (VACUUM INTO) et la restauration valide puis met à niveau le fichier
+ * avant de remplacer la base, puis redémarre l'application.
+ */
 
-const todayStamp = (): string => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export interface AutoBackup {
+  name: string;
+  createdAt: number;
+  sizeBytes: number;
+}
+
+/** Emplacement des sauvegardes automatiques, à afficher tel quel. */
+export const BACKUP_DIR_LABEL = "dossier de l'application / backups";
+
+const DEMO_ERROR = 'Indisponible en mode démonstration.';
+
+const assertDesktop = (): void => {
+  if (DEMO_MODE) throw new Error(DEMO_ERROR);
 };
 
+/** Les commandes Rust rejettent avec un message en français (string) : on le remonte en Error. */
+const call = async <T>(command: string): Promise<T> => {
+  try {
+    return await invoke<T>(command);
+  } catch (error) {
+    throw new Error(typeof error === 'string' ? error : error instanceof Error ? error.message : String(error));
+  }
+};
+
+/** false = annulé par l'utilisateur. */
 export const exportDatabase = async (): Promise<boolean> => {
-  if (DEMO_MODE) throw new Error('Indisponible en mode démonstration.');
-  const target = await save({
-    title: 'Exporter la base de données',
-    defaultPath: `inscriptions_${todayStamp()}.db`,
-    filters: [{ name: 'SQLite', extensions: ['db'] }],
-  });
-  if (!target) return false;
-
-  const sourcePath = await join(await appDataDir(), DB_FILENAME);
-  await copyFile(sourcePath, target);
-  return true;
+  assertDesktop();
+  const path = await call<string | null>('export_database');
+  return path !== null;
 };
 
-export const importDatabase = async (): Promise<boolean> => {
-  if (DEMO_MODE) throw new Error('Indisponible en mode démonstration.');
-  const picked = await open({
-    title: 'Importer une base de données',
-    multiple: false,
-    directory: false,
-    filters: [{ name: 'SQLite', extensions: ['db', 'sqlite', 'sqlite3'] }],
-  });
-  if (!picked || typeof picked !== 'string') return false;
+/**
+ * false = annulé. Lève une Error (message FR) si le fichier est invalide.
+ * En cas de succès : sauvegarde automatique de la base actuelle, remplacement, puis
+ * redémarrage de l'application (la promesse peut ne jamais se résoudre).
+ */
+export const restoreDatabase = async (): Promise<boolean> => {
+  assertDesktop();
+  return call<boolean>('restore_database');
+};
 
-  const db = await getDb();
-  await db.close();
+/**
+ * Sauvegarde automatique, purge (inscriptions, contacts, historique, activités sauf
+ * l'activité par défaut, mot de passe), événement `reset`, puis redémarrage.
+ */
+export const resetAppData = async (): Promise<void> => {
+  assertDesktop();
+  await call<void>('reset_app_data');
+};
 
-  await copyFile(picked, DB_FILENAME, { toPathBaseDir: BaseDirectory.AppData });
-  return true;
+export const listAutoBackups = async (): Promise<AutoBackup[]> => {
+  assertDesktop();
+  return call<AutoBackup[]>('list_auto_backups');
 };
