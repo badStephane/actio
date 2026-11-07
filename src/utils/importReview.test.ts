@@ -59,10 +59,29 @@ describe('detectSuspicious (Avenant A1)', () => {
     expect(detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT)).toEqual([]);
   });
 
-  it('signale une date ambiguë jour/mois dans un lot importé avec la suggestion inversée', () => {
-    const regs = batch(3, { registrationDate: '2026-03-04' });
-    const [first] = detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT);
-    expect(first).toMatchObject({ reasons: ['date_ambiguous'], suggestedDate: '2026-04-03' });
+  describe('dates jour/mois (incident rc.1 : 392 dates justes inversées en masse)', () => {
+    const IMPORTED_7_MAY = new Date(2026, 4, 7, 19, 3, 56).getTime();
+
+    it('ne signale pas une date ambiguë mais cohérente : le 7 mai saisi le 7 mai', () => {
+      const regs = batch(3, { registrationDate: '2026-05-07', createdAt: IMPORTED_7_MAY });
+      expect(detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT)).toEqual([]);
+    });
+
+    it('ne signale pas une date passée, même inversable : rien ne prouve l’erreur', () => {
+      const regs = batch(3, { registrationDate: '2026-03-04', createdAt: IMPORTED_7_MAY });
+      expect(detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT)).toEqual([]);
+    });
+
+    it('signale une date postérieure à la saisie dont l’inversion tombe avant la saisie', () => {
+      const regs = batch(3, { registrationDate: '2026-07-05', createdAt: IMPORTED_7_MAY });
+      const [first] = detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT);
+      expect(first).toMatchObject({ reasons: ['date_ambiguous'], suggestedDate: '2026-05-07' });
+    });
+
+    it('ne signale pas une date future dont l’inversion reste future (inscription anticipée)', () => {
+      const regs = batch(3, { registrationDate: '2026-12-11', createdAt: IMPORTED_7_MAY });
+      expect(detectSuspicious(regs, [act('gala', 5000)], [], FIX_AT)).toEqual([]);
+    });
   });
 
   it('remonte le montant d’origine des lignes non entières (amount_review) même hors lot', () => {
