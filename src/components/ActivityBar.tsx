@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { TriangleExclamationPoint, RefreshCw } from 'lucide-react';
 import { Activity, DEFAULT_ACTIVITY_ID } from '../types';
 import { isPastActivity } from './currentActivity';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { CircleExclamationPoint, TriangleExclamationPoint, CircleCheck, Eraser, List, Save, X } from 'lucide-react';
 import { Registration } from '../types';
 import { RegistrationFormErrors, displayName, fieldA11y } from './registrationFormModel';

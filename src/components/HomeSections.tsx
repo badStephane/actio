@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { TriangleExclamationPoint, CalendarDays, Clock, Hourglass, CirclePlus } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateLong } from './uiFormat';

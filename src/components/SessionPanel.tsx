@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { SessionEntry, VISIBLE_SESSION_ENTRIES, computeSessionTotals } from './sessionEntries';
 import { displayName } from './registrationFormModel';
 import { formatAmount } from './uiFormat';

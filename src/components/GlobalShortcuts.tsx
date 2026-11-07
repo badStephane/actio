@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { FOCUS_LAST_NAME_EVENT, isNewRegistrationShortcut, isShortcutBlocked } from './shortcuts';
 
 /**

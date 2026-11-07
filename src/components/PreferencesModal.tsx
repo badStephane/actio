@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Settings, X, Clock, ListChecks } from 'lucide-react';
 import { useAuth } from './authContext';
 import ContactBookSection from './ContactBookSection';

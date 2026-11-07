@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router';
 import { getVersion } from '@tauri-apps/api/app';
 import { ClipboardList, CirclePlus, House as HomeIcon, Lock, KeyRound, LifeBuoy, CalendarDays, Menu, X, Settings, RotateCcwClock } from 'lucide-react';
 import Home from './pages/Home';

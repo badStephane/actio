@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router';
 import { ToastVariant } from './Toast';
 
 /** Message transmis par `navigate(..., { state: { flash } })`, affiché une fois puis retiré de l'historique. */

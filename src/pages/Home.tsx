@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { CirclePlus, ClipboardList, Users, Coins, CalendarClock, CalendarRange, CalendarDays, ChartColumn } from 'lucide-react';
 import { getRegistrations } from '../utils/storage';
 import { getActivities } from '../utils/activities';

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, CircleExclamationPoint, Download } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';

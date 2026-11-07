@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { CircleCheckBig, Info, WandSparkles } from 'lucide-react';
 import { findSuspiciousRegistrations, markReviewed, SuspiciousRegistration } from '../utils/importReview';
 import { updateRegistration } from '../utils/storage';

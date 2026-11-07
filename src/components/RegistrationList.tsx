@@ -1,5 +1,5 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { ClipboardList, CirclePlus } from 'lucide-react';
 import { getRegistrations, deleteRegistration } from '../utils/storage';
 import { exportToExcel } from '../utils/excelExport';

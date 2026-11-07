@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { TriangleExclamationPoint } from 'lucide-react';
 import { findSuspiciousRegistrations } from '../utils/importReview';
 
