@@ -1,61 +1,167 @@
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Activity, Registration } from '../types';
-import { PAYMENT_LABEL } from './uiFormat';
-import { RegistrationFormErrors, fieldA11y } from './registrationFormModel';
+import { Link } from 'react-router-dom';
+import { AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Registration } from '../types';
+import { RegistrationFormErrors, displayName, fieldA11y } from './registrationFormModel';
+import { formatIsoDate } from './importReviewModel';
+import { formatAmount } from './uiFormat';
+import { paymentLabel } from './paymentMeta';
+
+export const LABEL_CLASS = 'block text-sm font-semibold text-ink-soft mb-1';
+
+/** Astérisque des champs requis (le caractère requis est aussi porté par le message d'erreur). */
+export const RequiredMark: React.FC = () => (
+  <span className="text-danger" aria-hidden="true"> *</span>
+);
 
 export const FieldError: React.FC<{ id: string; message?: string }> = ({ id, message }) =>
   message ? (
-    <p id={id} className="mt-0.5 text-xs text-red-700">
+    <p id={id} className="mt-1 flex items-start gap-1 text-sm text-danger">
+      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
       {message}
     </p>
   ) : null;
 
-const PAYMENT_ORDER: Registration['paymentType'][] = ['cash', 'wave', 'orange_money'];
-
-interface PaymentFieldsetProps {
-  value: Registration['paymentType'];
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+interface AmountFieldProps {
+  value: string;
+  errors: RegistrationFormErrors;
+  onChange: (value: string) => void;
+  onBlur: () => void;
 }
 
-/** Choix du mode de paiement, groupé pour les lecteurs d'écran (m1). */
-export const PaymentFieldset: React.FC<PaymentFieldsetProps> = ({ value, onChange }) => (
-  <fieldset>
-    <legend className="block text-xs font-medium text-gray-700 mb-2">
-      Type de paiement <span className="text-red-600" aria-hidden="true">*</span>
-    </legend>
-    <div className="flex gap-4">
-      {PAYMENT_ORDER.map(type => (
-        <label key={type} className="flex items-center gap-1.5 cursor-pointer min-h-[32px]">
-          <input
-            type="radio"
-            name="paymentType"
-            value={type}
-            checked={value === type}
-            onChange={onChange}
-            className="h-3.5 w-3.5 text-blue-600 border-gray-300"
-          />
-          <span className="text-sm text-gray-700">{PAYMENT_LABEL[type]}</span>
-        </label>
-      ))}
+/** Montant en texte (U7) : pas de molette ni de flèches, séparateur de milliers à la sortie du champ. */
+export const AmountField: React.FC<AmountFieldProps> = ({ value, errors, onChange, onBlur }) => (
+  <div className="w-52">
+    <label htmlFor="amount" className={LABEL_CLASS}>
+      Montant<span className="sr-only"> en francs CFA</span>
+      <RequiredMark />
+    </label>
+    <div className="relative">
+      <input
+        type="text"
+        inputMode="numeric"
+        id="amount"
+        name="amount"
+        autoComplete="off"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        placeholder="0"
+        className={`input-field input-lg text-right pr-16 tabular-nums ${errors.amount ? 'has-error' : ''}`}
+        {...fieldA11y('amount', errors)}
+      />
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-muted" aria-hidden="true">
+        F CFA
+      </span>
     </div>
-  </fieldset>
+    <FieldError id="amount-error" message={errors.amount} />
+  </div>
+);
+
+interface DateFieldProps {
+  value: string;
+  today: string;
+  isOpen: boolean;
+  /** En modification, le champ est toujours visible et sans avertissement. */
+  isEditMode: boolean;
+  error?: string;
+  onOpen: () => void;
+  onChange: (value: string) => void;
+}
+
+/**
+ * Date d'inscription hors de l'ordre de tabulation (U4) : « aujourd'hui » par défaut,
+ * « Changer la date » révèle le champ et lui donne le focus.
+ */
+export const DateField: React.FC<DateFieldProps> = ({ value, today, isOpen, isEditMode, error, onOpen, onChange }) => {
+  const isToday = value === today;
+  if (!isOpen && !isEditMode && isToday && !error) {
+    return (
+      <p className="text-sm text-ink-muted">
+        Date d'inscription : <b className="font-semibold text-ink">aujourd'hui, {formatIsoDate(today)}</b>
+        {' · '}
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex items-center min-h-[24px] px-0.5 font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
+        >
+          Changer la date
+        </button>
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+      <div className="w-52">
+        <label htmlFor="registrationDate" className={LABEL_CLASS}>
+          Date d'inscription
+          <RequiredMark />
+        </label>
+        <input
+          type="date"
+          id="registrationDate"
+          name="registrationDate"
+          value={value}
+          autoFocus={isOpen}
+          onChange={(e) => onChange(e.target.value)}
+          className={`input-field input-lg ${error ? 'has-error' : ''}`}
+          {...fieldA11y('registrationDate', { registrationDate: error })}
+        />
+      </div>
+      {!isEditMode && !isToday && value && !error && (
+        <p className="flex items-center gap-1 pb-3 text-sm font-semibold text-warning">
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Date : {formatIsoDate(value)}, différente d'aujourd'hui
+        </p>
+      )}
+      <div className="basis-full">
+        <FieldError id="registrationDate-error" message={error} />
+      </div>
+    </div>
+  );
+};
+
+interface SavedBannerProps {
+  saved: Registration | null;
+}
+
+/**
+ * Confirmation après enregistrement (Lot 1, 1.2). La zone `role="status"` existe toujours
+ * pour que le lecteur d'écran annonce chaque nouveau contenu.
+ */
+export const SavedBanner: React.FC<SavedBannerProps> = ({ saved }) => (
+  <div role="status" className={saved ? 'mx-4 mt-4' : 'sr-only'}>
+    {saved && (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 rounded-control border border-success-line bg-success-soft text-sm text-success">
+        <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span>
+          Inscription enregistrée : <b>{displayName(saved)}</b> ·{' '}
+          <b className="tabular-nums">{formatAmount(saved.amount)}</b> · {paymentLabel(saved.paymentType)}.
+        </span>
+        {saved.id && (
+          <Link
+            to={`/edit/${encodeURIComponent(saved.id)}?retour=saisie`}
+            className="ml-auto inline-flex items-center min-h-[24px] px-1 font-semibold text-brand-700 underline hover:text-brand-900 rounded-control"
+          >
+            Modifier<span className="sr-only"> l'inscription de {displayName(saved)}</span>
+          </Link>
+        )}
+      </div>
+    )}
+  </div>
 );
 
 export const RegistrationFormSkeleton: React.FC = () => (
-  <div className="p-6 max-w-2xl" aria-busy="true">
+  <div className="px-6 py-5 max-w-[45rem]" aria-busy="true">
     <div className="panel p-4 space-y-4">
-      <div className="skeleton h-8 w-48 rounded" />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="skeleton h-9 rounded" />
-        <div className="skeleton h-9 rounded" />
+      <div className="skeleton h-10 w-72 rounded" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="skeleton h-11 rounded" />
+        <div className="skeleton h-11 rounded" />
+        <div className="skeleton h-11 rounded" />
+        <div className="skeleton h-11 rounded" />
       </div>
-      <div className="skeleton h-9 rounded" />
-      <div className="skeleton h-16 rounded" />
-      <div className="grid grid-cols-2 gap-3">
-        <div className="skeleton h-9 rounded" />
-        <div className="skeleton h-9 rounded" />
-      </div>
+      <div className="skeleton h-11 w-2/3 rounded" />
     </div>
     <span className="sr-only">Chargement de l'inscription...</span>
   </div>
@@ -70,101 +176,6 @@ export const RegistrationNotFound: React.FC<{ onBack: () => void }> = ({ onBack 
       <button onClick={onBack} className="btn btn-primary">
         Retour à la liste
       </button>
-    </div>
-  </div>
-);
-
-interface ActivityFieldProps {
-  value: string;
-  activities: Activity[];
-  error?: string;
-  hasLoadError: boolean;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  onRetry: () => void;
-}
-
-/** Choix de l'activité, avec erreur de chargement distincte d'une liste vide (M3). */
-export const ActivityField: React.FC<ActivityFieldProps> = ({
-  value, activities, error, hasLoadError, onChange, onRetry,
-}) => (
-  <div>
-    <label htmlFor="activityId" className="block text-xs font-medium text-gray-700 mb-1">
-      Activité <span className="text-red-600" aria-hidden="true">*</span>
-    </label>
-    <select
-      id="activityId"
-      name="activityId"
-      value={value}
-      onChange={onChange}
-      disabled={hasLoadError}
-      aria-invalid={error ? true : undefined}
-      aria-describedby={error ? 'activityId-error' : undefined}
-      className={`input-field ${error ? 'has-error' : ''}`}
-    >
-      {activities.map(a => (
-        <option key={a.id} value={a.id}>
-          {a.name}
-          {a.eventDate ? ` · ${new Date(a.eventDate).toLocaleDateString('fr-FR')}` : ''}
-          {a.archivedAt ? ' (archivée)' : ''}
-        </option>
-      ))}
-    </select>
-    <FieldError id="activityId-error" message={error} />
-    {hasLoadError && (
-      <p role="alert" className="mt-1 text-xs text-red-700 flex items-center gap-2">
-        Impossible de charger les activités.
-        <button type="button" onClick={onRetry} className="btn btn-default py-0.5">
-          <RefreshCw className="h-3 w-3" aria-hidden="true" />
-          Réessayer
-        </button>
-      </p>
-    )}
-  </div>
-);
-
-interface DateAmountFieldsProps {
-  registrationDate: string;
-  amount: string;
-  errors: RegistrationFormErrors;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-/** Date d'inscription et montant entier en F CFA (D1, D10). */
-export const DateAmountFields: React.FC<DateAmountFieldsProps> = ({ registrationDate, amount, errors, onChange }) => (
-  <div className="grid grid-cols-2 gap-3">
-    <div>
-      <label htmlFor="registrationDate" className="block text-xs font-medium text-gray-700 mb-1">
-        Date d'inscription <span className="text-red-600" aria-hidden="true">*</span>
-      </label>
-      <input
-        type="date"
-        id="registrationDate"
-        name="registrationDate"
-        value={registrationDate}
-        onChange={onChange}
-        className={`input-field ${errors.registrationDate ? 'has-error' : ''}`}
-        {...fieldA11y('registrationDate', errors)}
-      />
-      <FieldError id="registrationDate-error" message={errors.registrationDate} />
-    </div>
-    <div>
-      <label htmlFor="amount" className="block text-xs font-medium text-gray-700 mb-1">
-        Montant (F CFA) <span className="text-red-600" aria-hidden="true">*</span>
-      </label>
-      <input
-        type="number"
-        id="amount"
-        name="amount"
-        value={amount}
-        onChange={onChange}
-        min="0"
-        step="1"
-        inputMode="numeric"
-        placeholder="0"
-        className={`input-field ${errors.amount ? 'has-error' : ''}`}
-        {...fieldA11y('amount', errors)}
-      />
-      <FieldError id="amount-error" message={errors.amount} />
     </div>
   </div>
 );

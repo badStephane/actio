@@ -41,12 +41,12 @@ describe('validateRegistrationForm (M10, QA-17, D1)', () => {
     expect(validateRegistrationForm(form({ amount: '100000001' })).amount).toBeDefined();
   });
 
-  it('champs requis, téléphone trop court, date impossible', () => {
+  it('champs requis, téléphone trop court, date impossible (adresse facultative : D19)', () => {
     const errors = validateRegistrationForm(
       form({ firstName: ' ', lastName: '', phone: '77 12', address: '', registrationDate: '2026-02-30', activityId: '' })
     );
     expect(Object.keys(errors).sort()).toEqual(
-      ['activityId', 'address', 'firstName', 'lastName', 'phone', 'registrationDate'].sort()
+      ['activityId', 'firstName', 'lastName', 'phone', 'registrationDate'].sort()
     );
     expect(errors.phone).toMatch(/8 chiffres/);
     expect(errors.registrationDate).toBe('Date invalide');

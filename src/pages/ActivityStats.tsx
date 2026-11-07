@@ -20,21 +20,11 @@ import { Activity, Registration } from '../types';
 import { getActivityById } from '../utils/activities';
 import { getRegistrations } from '../utils/storage';
 import LoadError from '../components/LoadError';
+import { PAYMENT_METAS } from '../components/paymentMeta';
 
 const formatAmount = (amount: number): string =>
   `${new Intl.NumberFormat('fr-FR').format(Math.round(amount))} F`;
 
-const PAYMENT_LABEL: Record<Registration['paymentType'], string> = {
-  wave: 'Wave',
-  cash: 'Espèce',
-  orange_money: 'Orange Money',
-};
-
-const PAYMENT_COLOR: Record<Registration['paymentType'], string> = {
-  wave: '#3b82f6',
-  cash: '#10b981',
-  orange_money: '#f97316',
-};
 
 const ActivityStats: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,14 +70,14 @@ const ActivityStats: React.FC = () => {
     const last30Days = registrations.filter(r => now - new Date(r.registrationDate).getTime() <= 30 * 24 * 60 * 60 * 1000).length;
 
     // By payment type
-    const byPayment = (['wave', 'cash', 'orange_money'] as const).map(pt => {
-      const list = registrations.filter(r => r.paymentType === pt);
+    const byPayment = PAYMENT_METAS.map(meta => {
+      const list = registrations.filter(r => r.paymentType === meta.type);
       return {
-        name: PAYMENT_LABEL[pt],
-        type: pt,
+        name: meta.label,
+        type: meta.type,
         count: list.length,
         amount: list.reduce((s, r) => s + r.amount, 0),
-        color: PAYMENT_COLOR[pt],
+        color: meta.hex,
       };
     }).filter(p => p.count > 0);
 

@@ -96,7 +96,10 @@ describe('parsePaymentType', () => {
     ['Orange Money', 'orange_money'],
     ['OM', 'orange_money'],
     ['Espèce', 'cash'],
+    ['espece', 'cash'],
+    ['Espèces', 'cash'],
     ['especes', 'cash'],
+    ['cash', 'cash'],
     ['Liquide', 'cash'],
   ])('« %s » -> %s', (input, expected) => {
     expect(parsePaymentType(input)).toBe(expected);
@@ -161,7 +164,7 @@ describe('validateRows', () => {
     expect(missing.missingColumns).toContain('paymentType');
     expect(missing.valid[0].data?.paymentType).toBe('cash');
     const unknown = validateRows([row({ 'Type de paiement': 'chèque' })], ACTIVITY, []);
-    expect(unknown.invalid[0].errors.join(' ')).toMatch(/Mode de paiement inconnu/);
+    expect(unknown.invalid[0].errors.join(' ')).toMatch(/Mode de paiement inconnu.*\(espèces, wave ou orange money\)/);
     const blank = validateRows([row({ 'Type de paiement': '' })], ACTIVITY, []);
     expect(blank.invalid[0].errors.join(' ')).toMatch(/Mode de paiement manquant/);
   });
@@ -176,8 +179,20 @@ describe('validateRows', () => {
     expect(errors).toMatch(/Nom manquant/);
     expect(errors).toMatch(/trop long/);
     expect(errors).toMatch(/Téléphone invalide/);
-    expect(errors).toMatch(/Adresse manquante/);
+    expect(errors).not.toMatch(/Adresse/); // D19 : adresse facultative
     expect(errors).toMatch(/Date illisible/);
+  });
+
+  it('adresse vide ou colonne absente : ligne valide, chaîne vide stockée (D19)', () => {
+    const blank = validateRows([row({ Adresse: '   ' })], ACTIVITY, []);
+    expect(blank.invalid).toHaveLength(0);
+    expect(blank.valid[0].data?.address).toBe('');
+
+    const withoutAddress = Object.fromEntries(Object.entries(row()).filter(([k]) => k !== 'Adresse'));
+    const missing = validateRows([withoutAddress], ACTIVITY, []);
+    expect(missing.invalid).toHaveLength(0);
+    expect(missing.valid[0].data?.address).toBe('');
+    expect(missing.missingColumns).not.toContain('address');
   });
 
   it('refuse une adresse trop longue et un téléphone vide', () => {
@@ -235,6 +250,7 @@ describe('parseFile sur de vrais classeurs', () => {
     exportToExcel(regs, [ACTIVITY], 'test');
     expect(captured.workbooks).toHaveLength(1);
     const rows = await parseFile(workbookFile(captured.workbooks[0] as XLSX.WorkBook));
+    expect(rows.map((r) => r['Type de paiement'])).toEqual(['Orange Money', 'Espèces', 'Wave']); // libellé exporté
     const result = validateRows(rows, FREE_ACTIVITY, []);
     expect(result.missingColumns).toEqual([]);
     expect(result.unrecognizedHeaders).toEqual([]);

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, X, Clock, ListChecks } from 'lucide-react';
 import { useAuth } from './authContext';
 import ContactBookSection from './ContactBookSection';
-import AutoBackupsSection from './AutoBackupsSection';
+import BackupsSection from './BackupsSection';
+import EntryTimingSection from './EntryTimingSection';
 import UpdateCheckSection from './UpdateCheckSection';
 
 interface PreferencesModalProps {
@@ -31,6 +32,9 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) =>
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
+      // Une confirmation ouverte par-dessus (restauration, effacement) gère son propre Échap.
+      const activeDialog = document.activeElement?.closest('[role="dialog"]');
+      if (activeDialog && activeDialog.getAttribute('aria-labelledby') !== 'preferences-title') return;
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKey);
@@ -48,7 +52,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) =>
       aria-labelledby="preferences-title"
     >
       <div
-        className="panel shadow-xl max-w-md w-full mx-4 overflow-hidden flex flex-col max-h-[85vh]"
+        className="panel shadow-xl max-w-lg w-full mx-4 overflow-hidden flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between px-4 py-3 border-b border-gray-200">
@@ -105,8 +109,9 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ open, onClose }) =>
             </button>
           </div>
 
+          <BackupsSection />
           <ContactBookSection />
-          <AutoBackupsSection />
+          <EntryTimingSection />
           <UpdateCheckSection />
         </div>
 

@@ -2,7 +2,8 @@ import React from 'react';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { Activity } from '../types';
 import { ParseResult, ParsedRow } from '../utils/importRegistrations';
-import { formatAmount, PAYMENT_LABEL } from './uiFormat';
+import { formatAmount } from './uiFormat';
+import { paymentLabel } from './paymentMeta';
 
 type MissingColumn = ParseResult['missingColumns'][number];
 
@@ -14,7 +15,7 @@ const missingColumnText = (column: MissingColumn, activity: Activity): string =>
     case 'amount':
       return `Montant : chaque ligne prendra le montant par défaut de l'activité (${formatAmount(activity.defaultAmount ?? 0)}).`;
     case 'paymentType':
-      return 'Type de paiement : chaque ligne sera enregistrée en « Espèce ».';
+      return 'Type de paiement : chaque ligne sera enregistrée en « Espèces ».';
     case 'registrationDate':
       return 'Date d\'inscription : chaque ligne prendra la date du jour.';
   }
@@ -115,7 +116,7 @@ const ImportPreview: React.FC<ImportPreviewProps> = ({
                     <td className="px-2 py-1.5 text-gray-900">{r.data?.lastName} {r.data?.firstName}</td>
                     <td className="px-2 py-1.5 text-gray-700 tabular-nums">{r.data?.phone}</td>
                     <td className="px-2 py-1.5 text-right text-gray-900 tabular-nums">{formatAmount(r.amount)}</td>
-                    <td className="px-2 py-1.5 text-gray-700">{r.data ? PAYMENT_LABEL[r.data.paymentType] : ''}</td>
+                    <td className="px-2 py-1.5 text-gray-700">{r.data ? paymentLabel(r.data.paymentType) : ''}</td>
                     <td className="px-2 py-1.5 text-gray-700 tabular-nums">{r.data?.registrationDate}</td>
                   </tr>
                 ))}

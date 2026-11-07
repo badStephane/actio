@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Archive, RefreshCw } from 'lucide-react';
-import { listAutoBackups, BACKUP_DIR_LABEL } from '../utils/dbBackup';
+import { listAutoBackups } from '../utils/dbBackup';
 import { DEMO_MODE } from '../utils/demo';
 import { errorMessage, formatBytes } from './uiFormat';
 
@@ -44,14 +44,14 @@ const AutoBackupsSection: React.FC = () => {
   }, [load]);
 
   return (
-    <div className="border-t border-gray-200 pt-4">
+    <div>
       <div className="flex items-center gap-2 mb-1">
         <Archive className="h-3.5 w-3.5 text-gray-600" aria-hidden="true" />
-        <h4 className="text-xs font-medium text-gray-700">Sauvegardes automatiques</h4>
+        <h5 className="text-sm font-semibold text-ink-soft">Sauvegardes automatiques</h5>
       </div>
       <p className="text-xs text-gray-600 mb-2">
-        Une copie de la base est faite avant chaque restauration et chaque effacement complet.
-        Emplacement : <span className="font-medium text-gray-800">{BACKUP_DIR_LABEL}</span>.
+        Une copie de la base est faite à chaque démarrage, avant chaque mise à jour, avant chaque
+        restauration et avant chaque effacement complet. Les 10 plus récentes de chaque type sont gardées.
       </p>
 
       {DEMO_MODE && <p className="text-xs text-gray-600">Indisponible en mode démonstration.</p>}

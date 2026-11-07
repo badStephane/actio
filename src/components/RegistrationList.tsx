@@ -1,5 +1,5 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Download, Search, ClipboardList, PlusCircle, ArrowLeft, Layers } from 'lucide-react';
 import { getRegistrations, deleteRegistration } from '../utils/storage';
 import { exportToExcel } from '../utils/excelExport';
@@ -9,11 +9,12 @@ import { Registration, Activity } from '../types';
 import ConfirmModal from './ConfirmModal';
 import Toast from './Toast';
 import LoadError from './LoadError';
-import BackupActions from './BackupActions';
 import RegistrationTable, { PaginationBar, SortKey, SortDirection } from './RegistrationTable';
 import { ActivityPicker, RegistrationListSkeleton, RegistrationStatsStrip } from './RegistrationListParts';
 import { useToast } from './useToast';
+import { useFlashToast } from './useFlashToast';
 import { errorMessage } from './uiFormat';
+import { PAYMENT_METAS } from './paymentMeta';
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -69,7 +70,10 @@ const buildExportFilename = (f: Filters, activity: Activity | undefined): string
 const RegistrationList: React.FC = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  // « Voir la liste » depuis la saisie ouvre directement la liste de l'activité (Lot 1).
+  const [searchParams] = useSearchParams();
+  const requestedActivity = searchParams.get('activity') ?? '';
+  const [filters, setFilters] = useState<Filters>(() => ({ ...EMPTY_FILTERS, activity: requestedActivity }));
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -78,8 +82,9 @@ const RegistrationList: React.FC = () => {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [selectionMade, setSelectionMade] = useState(false);
+  const [selectionMade, setSelectionMade] = useState(Boolean(requestedActivity));
   const { toast, showToast, closeToast } = useToast();
+  useFlashToast(showToast);
   const deferredSearch = useDeferredValue(filters.search);
 
   const load = useCallback(async () => {
@@ -213,9 +218,9 @@ const RegistrationList: React.FC = () => {
           className="input-field w-auto py-1"
         >
           <option value="">Tous les paiements</option>
-          <option value="cash">Espèce</option>
-          <option value="wave">Wave</option>
-          <option value="orange_money">Orange Money</option>
+          {PAYMENT_METAS.map(m => (
+            <option key={m.type} value={m.type}>{m.label}</option>
+          ))}
         </select>
 
         <label className="flex items-center gap-1 text-xs text-gray-700">
@@ -239,8 +244,6 @@ const RegistrationList: React.FC = () => {
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
           Excel
         </button>
-
-        <BackupActions onNotify={showToast} />
 
         <span className="ml-auto text-xs text-gray-600">
           {filteredRegistrations.length} / {registrations.length} inscription(s)

@@ -152,8 +152,8 @@ const checkIdentity = (lastName: string, firstName: string, phone: string, addre
   else if (phone.replace(/\D/g, '').length < MIN_PHONE_DIGITS) {
     errors.push(`Téléphone invalide (au moins ${MIN_PHONE_DIGITS} chiffres)`);
   }
-  if (!address) errors.push('Adresse manquante');
-  else if (address.length > MAX_ADDRESS_LENGTH) {
+  // D19 : adresse facultative (chaîne vide stockée) ; seule la longueur est contrôlée.
+  if (address.length > MAX_ADDRESS_LENGTH) {
     errors.push(`Adresse trop longue (${MAX_ADDRESS_LENGTH} caractères maximum)`);
   }
   return errors;
@@ -181,7 +181,7 @@ const readPayment = (raw: Record<string, unknown>, ctx: ValidateContext): { valu
   const value = parsePaymentType(cell);
   return value
     ? { value }
-    : { error: `Mode de paiement inconnu : « ${String(cell)} » (espèce, wave ou orange money)` };
+    : { error: `Mode de paiement inconnu : « ${String(cell)} » (espèces, wave ou orange money)` };
 };
 
 /** Date : colonne absente ou cellule vide = aujourd'hui (heure locale) ; valeur illisible = erreur. */
@@ -316,7 +316,7 @@ export const downloadTemplate = (): void => {
       'Téléphone': '77 000 00 02',
       Adresse: 'Thiès',
       Montant: 3000,
-      'Type de paiement': 'espèce',
+      'Type de paiement': 'espèces',
       "Date d'inscription": '2026-05-16',
     },
   ];

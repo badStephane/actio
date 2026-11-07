@@ -12,9 +12,13 @@
     @apply text-sm antialiased;
   }
 
-  /* Remove default focus ring, add custom */
+  /* U23 : anneau de focus 2 px brand-600 (>= 5,3:1 sur fonds clairs), visible en plein jour. */
   *:focus-visible {
-    @apply outline-none ring-1 ring-blue-500 ring-offset-0;
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white;
+  }
+  /* Sur fond sombre (sidebar) : anneau blanc. */
+  .on-dark :focus-visible {
+    @apply ring-white ring-offset-gray-900;
   }
 
   /* Scrollbar styling for desktop feel */
@@ -56,13 +60,32 @@
   .btn-ghost {
     @apply bg-transparent border-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200;
   }
+  /* Actions du guichet : 44 px, texte 14 px (Lot 1). */
+  .btn-lg {
+    @apply min-h-control-lg px-4 text-sm font-semibold rounded-control gap-2;
+  }
+  .btn-brand {
+    @apply bg-brand-600 border-brand-700 text-white hover:bg-brand-700 active:bg-brand-900;
+  }
+  .btn-danger-ghost {
+    @apply bg-transparent border-transparent text-danger hover:bg-danger-soft;
+  }
 
+  /* U10 : bordure gray-500 (4,8:1, WCAG 1.4.11) ; focus 2 px sans décalage. */
   .input-field {
-    @apply w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded bg-white placeholder-gray-400
-           focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors;
+    @apply w-full px-2.5 py-1.5 text-sm border border-gray-500 rounded bg-white placeholder-gray-500
+           focus:ring-2 focus:ring-brand-600 focus:ring-offset-0 focus:border-brand-600 transition-colors;
   }
   .input-field.has-error {
-    @apply border-red-400 focus:ring-red-500 focus:border-red-500;
+    @apply border-danger focus:ring-danger focus:border-danger;
+  }
+  /* Champs du guichet : 44 px, texte 16 px. */
+  .input-lg {
+    @apply h-control-lg px-3 text-base rounded-control;
+  }
+
+  .kbd {
+    @apply inline-flex items-center px-1 rounded border text-xs font-normal leading-4;
   }
 
   .panel {

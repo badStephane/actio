@@ -1,14 +1,6 @@
-import { Registration } from '../types';
-
 /** Montant entier en francs CFA, ex. « 5 000 F ». */
 export const formatAmount = (amount: number): string =>
   `${new Intl.NumberFormat('fr-FR').format(Math.round(amount))} F`;
-
-export const PAYMENT_LABEL: Record<Registration['paymentType'], string> = {
-  wave: 'Wave',
-  cash: 'Espèce',
-  orange_money: 'Orange Money',
-};
 
 /**
  * Message lisible pour l'utilisateur. La couche données lève des `Error`

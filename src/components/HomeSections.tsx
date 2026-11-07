@@ -3,31 +3,8 @@ import { Link } from 'react-router-dom';
 import { Clock, CalendarDays } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount, formatDateLong } from './uiFormat';
+import { PAYMENT_META } from './paymentMeta';
 
-
-const PAYMENT_META: Record<
-  Registration['paymentType'],
-  { label: string; barClass: string; dotClass: string; textClass: string }
-> = {
-  wave: {
-    label: 'Wave',
-    barClass: 'bg-blue-500',
-    dotClass: 'bg-blue-500',
-    textClass: 'text-blue-700',
-  },
-  orange_money: {
-    label: 'Orange Money',
-    barClass: 'bg-orange-500',
-    dotClass: 'bg-orange-500',
-    textClass: 'text-orange-700',
-  },
-  cash: {
-    label: 'Espèce',
-    barClass: 'bg-emerald-500',
-    dotClass: 'bg-emerald-500',
-    textClass: 'text-emerald-700',
-  },
-};
 
 export interface PaymentBreakdown {
   type: Registration['paymentType'];
@@ -50,7 +27,7 @@ export const PaymentBreakdownCard: React.FC<{ breakdown: PaymentBreakdown[] }> =
           .map(b => (
             <div
               key={b.type}
-              className={`${PAYMENT_META[b.type].barClass} h-full`}
+              className={`${PAYMENT_META[b.type].fillClass} h-full`}
               style={{ width: `${b.share * 100}%` }}
               title={`${PAYMENT_META[b.type].label} : ${(b.share * 100).toFixed(1)}%`}
             />
@@ -62,7 +39,7 @@ export const PaymentBreakdownCard: React.FC<{ breakdown: PaymentBreakdown[] }> =
           <li key={b.type} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`h-2 w-2 rounded-full shrink-0 ${PAYMENT_META[b.type].dotClass}`}
+                className={`h-2 w-2 rounded-full shrink-0 ${PAYMENT_META[b.type].fillClass}`}
               />
               <span className={`font-medium truncate ${PAYMENT_META[b.type].textClass}`}>
                 {PAYMENT_META[b.type].label}

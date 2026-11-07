@@ -4,7 +4,7 @@ import { todayLocalIso } from './dates';
 
 const PAYMENT_LABEL: Record<Registration['paymentType'], string> = {
   wave: 'Wave',
-  cash: 'Espèce',
+  cash: 'Espèces',
   orange_money: 'Orange Money',
 };
 

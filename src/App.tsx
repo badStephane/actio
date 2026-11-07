@@ -17,6 +17,8 @@ import RecoveryCodeModal from './components/RecoveryCodeModal';
 import PreferencesModal from './components/PreferencesModal';
 import UpdateChecker from './components/UpdateChecker';
 import DemoBanner from './components/DemoBanner';
+import GlobalShortcuts from './components/GlobalShortcuts';
+import { NEW_REGISTRATION_SHORTCUT_LABEL } from './components/shortcuts';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-2 px-3 py-2.5 min-h-[44px] rounded text-sm transition-colors duration-100 ${
@@ -90,6 +92,7 @@ function AppShell() {
   return (
     <Router>
       <UpdateChecker>
+        <GlobalShortcuts />
         <div className="h-full flex">
           {/* Mobile overlay */}
           {sidebarOpen && (
@@ -100,7 +103,7 @@ function AppShell() {
           )}
 
           {/* Sidebar */}
-          <aside className={`
+          <aside className={`on-dark
             fixed inset-y-0 left-0 z-50 w-52 bg-gray-900 flex flex-col border-r border-gray-800
             transform transition-transform duration-200 ease-out
             lg:relative lg:translate-x-0 lg:z-auto
@@ -127,9 +130,17 @@ function AppShell() {
                 <HomeIcon className="h-4 w-4" />
                 Accueil
               </NavLink>
-              <NavLink to="/add" className={navLinkClass} onClick={() => setSidebarOpen(false)}>
-                <PlusCircle className="h-4 w-4" />
+              <NavLink
+                to="/add"
+                className={navLinkClass}
+                onClick={() => setSidebarOpen(false)}
+                aria-keyshortcuts="Control+N F2"
+              >
+                <PlusCircle className="h-4 w-4" aria-hidden="true" />
                 Nouvelle inscription
+                <kbd className="kbd ml-auto border-gray-500 text-gray-300" aria-hidden="true">
+                  {NEW_REGISTRATION_SHORTCUT_LABEL}
+                </kbd>
               </NavLink>
               <NavLink to="/registrations" className={navLinkClass} onClick={() => setSidebarOpen(false)}>
                 <ClipboardList className="h-4 w-4" />

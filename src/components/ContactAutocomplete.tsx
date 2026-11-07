@@ -28,6 +28,10 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
   const [highlight, setHighlight] = useState(0);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // U8 : identifiants propres à chaque champ (Nom, Prénoms et Téléphone partageaient la même liste).
+  const listId = `${inputProps.id ?? 'contact'}-suggestions`;
+  const optionId = (idx: number) => `${listId}-opt-${idx}`;
+  const isListVisible = open && suggestions.length > 0;
   const lastQueryRef = useRef<string>('');
   const justSelectedRef = useRef<boolean>(false);
 
@@ -127,25 +131,28 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
         }}
         autoComplete="off"
         role="combobox"
-        aria-expanded={open}
-        aria-controls="contact-suggestions"
+        aria-expanded={isListVisible}
+        aria-controls={listId}
         aria-autocomplete="list"
+        aria-activedescendant={isListVisible ? optionId(highlight) : undefined}
       />
 
-      {open && suggestions.length > 0 && (
+      {isListVisible && (
         <ul
-          id="contact-suggestions"
+          id={listId}
           role="listbox"
-          className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-60 overflow-auto"
+          aria-label="Contacts du carnet"
+          className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-300 rounded-control shadow-pop max-h-72 overflow-auto"
         >
           {loading && (
-            <li className="px-2 py-1.5 text-xs text-gray-400">Recherche…</li>
+            <li role="presentation" className="px-3 py-2 text-sm text-ink-muted">Recherche…</li>
           )}
           {suggestions.map((c, idx) => {
             const active = idx === highlight;
             return (
               <li
                 key={c.id}
+                id={optionId(idx)}
                 role="option"
                 aria-selected={active}
                 onMouseDown={(e) => {
@@ -153,19 +160,19 @@ const ContactAutocomplete: React.FC<ContactAutocompleteProps> = ({
                   pick(c);
                 }}
                 onMouseEnter={() => setHighlight(idx)}
-                className={`px-2 py-1.5 text-xs cursor-pointer ${
-                  active ? 'bg-blue-50' : 'hover:bg-gray-50'
+                className={`px-3 py-2 text-sm cursor-pointer ${
+                  active ? 'bg-brand-50' : 'hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <BookUser className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                  <span className="font-medium text-gray-900 truncate">
+                  <BookUser className="h-4 w-4 text-ink-muted flex-shrink-0" aria-hidden="true" />
+                  <span className="font-semibold text-ink truncate">
                     {c.lastName} {c.firstName}
                   </span>
-                  <span className="text-gray-500 tabular-nums truncate">· {c.phone}</span>
+                  <span className="text-ink-muted tabular-nums truncate">· {c.phone}</span>
                 </div>
                 {c.address && (
-                  <div className="text-[11px] text-gray-500 truncate mt-0.5 pl-[18px]">
+                  <div className="text-xs text-ink-muted truncate mt-0.5 pl-[22px]">
                     {c.address}
                   </div>
                 )}

@@ -1,95 +1,107 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CheckCircle, AlertCircle, Save, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { AlertCircle, Eraser, List, Save, X } from 'lucide-react';
 import { addRegistration, getRegistrationById, updateRegistration, findDuplicateRegistration } from '../utils/storage';
 import { getActivities } from '../utils/activities';
 import { todayLocalIso } from '../utils/dates';
-import { Activity, DEFAULT_ACTIVITY_ID, Registration } from '../types';
+import { Activity, Registration } from '../types';
 import { Contact } from '../utils/contacts';
 import ConfirmModal from './ConfirmModal';
-import ContactAutocomplete from './ContactAutocomplete';
 import LoadError from './LoadError';
-import {
-  ActivityField,
-  DateAmountFields,
-  FieldError,
-  PaymentFieldset,
-  RegistrationFormSkeleton,
-  RegistrationNotFound,
-} from './RegistrationFormParts';
+import Toast from './Toast';
+import ActivityBar from './ActivityBar';
+import IdentityFields from './IdentityFields';
+import PaymentSegment from './PaymentSegment';
+import SessionPanel from './SessionPanel';
+import { AmountField, DateField, RegistrationFormSkeleton, RegistrationNotFound, SavedBanner } from './RegistrationFormParts';
 import {
   RegistrationFormState,
   RegistrationFormErrors,
   RegistrationFormField,
-  validateRegistrationForm,
   buildRegistrationPayload,
-  fieldA11y,
+  createEmptyForm,
+  defaultAmountOf,
+  duplicateMessage,
+  firstInvalidField,
+  formatAmountInput,
+  resetFormAfterSave,
+  validateRegistrationForm,
 } from './registrationFormModel';
 import { errorMessage } from './uiFormat';
+import { PaymentType, paymentRadioId } from './paymentMeta';
+import { readCurrentActivityId, resolveGuichetActivity, writeCurrentActivityId } from './currentActivity';
+import { entriesForActivity, toSessionEntry } from './sessionEntries';
+import { useSessionEntries } from './useSessionEntries';
+import { useEntryTiming } from './useEntryTiming';
+import { useFlashToast } from './useFlashToast';
+import { useToast } from './useToast';
+import { FOCUS_LAST_NAME_EVENT } from './shortcuts';
 
-const REDIRECT_DELAY_MS = 1200;
-const CONTACT_FIELDS: RegistrationFormField[] = ['lastName', 'firstName', 'phone'];
-
-const emptyForm = (activityId: string): RegistrationFormState => ({
-  firstName: '',
-  lastName: '',
-  phone: '',
-  address: '',
-  registrationDate: todayLocalIso(),
-  paymentType: 'cash',
-  amount: '',
-  activityId,
-});
+type LoadState = 'loading' | 'ready' | 'error';
 
 const omitKeys = (errors: RegistrationFormErrors, keys: RegistrationFormField[]): RegistrationFormErrors =>
   Object.fromEntries(Object.entries(errors).filter(([k]) => !keys.includes(k as RegistrationFormField)));
+
+/** Focus après le rendu (le champ date n'existe qu'une fois révélé). */
+const focusSoon = (elementId: string): void => {
+  requestAnimationFrame(() => document.getElementById(elementId)?.focus());
+};
+
+const elementIdOf = (field: RegistrationFormField, paymentType: PaymentType): string =>
+  field === 'paymentType' ? paymentRadioId(paymentType) : field;
+
+const listHrefOf = (activityId: string): string =>
+  activityId ? `/registrations?activity=${encodeURIComponent(activityId)}` : '/registrations';
 
 const RegistrationForm: React.FC = () => {
   const navigate = useNavigate();
   const { id: editId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const presetActivityId = searchParams.get('activity');
+  const returnsToEntry = searchParams.get('retour') === 'saisie';
   const isEditMode = Boolean(editId);
 
-  const [formData, setFormData] = useState<RegistrationFormState>(() =>
-    emptyForm(presetActivityId || DEFAULT_ACTIVITY_ID)
-  );
+  const [formData, setFormData] = useState<RegistrationFormState>(() => createEmptyForm(null));
   const [errors, setErrors] = useState<RegistrationFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [isLoadingExisting, setIsLoadingExisting] = useState(isEditMode);
   const [existingLoadError, setExistingLoadError] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [activitiesError, setActivitiesError] = useState(false);
+  const [activitiesState, setActivitiesState] = useState<LoadState>('loading');
   const [duplicate, setDuplicate] = useState<Registration | null>(null);
+  const [lastSaved, setLastSaved] = useState<Registration | null>(null);
+  const [contactNote, setContactNote] = useState<string | null>(null);
+  const [isDateOpen, setIsDateOpen] = useState(false);
   const submittingRef = useRef(false);
-  const redirectTimerRef = useRef<number | undefined>(undefined);
+  const { entries, addEntry } = useSessionEntries();
+  const timing = useEntryTiming();
+  const { toast, showToast, closeToast } = useToast();
+  useFlashToast(showToast);
 
-  useEffect(() => () => window.clearTimeout(redirectTimerRef.current), []);
+  const activitiesById = useMemo(() => new Map(activities.map(a => [a.id, a])), [activities]);
+  const today = todayLocalIso();
 
   const loadActivities = useCallback(async () => {
-    setActivitiesError(false);
+    setActivitiesState('loading');
     try {
       const list = await getActivities(true);
       setActivities(list);
+      setActivitiesState('ready');
       if (isEditMode) return;
-      const live = list.filter(a => !a.archivedAt);
-      setFormData(prev => {
-        const picked = live.find(a => a.id === prev.activityId) ?? live[0];
-        if (!picked) return prev;
-        const shouldPrefill = prev.amount === '' && picked.defaultAmount !== undefined;
-        return {
-          ...prev,
-          activityId: picked.id,
-          amount: shouldPrefill ? String(picked.defaultAmount) : prev.amount,
-        };
-      });
+      const picked = resolveGuichetActivity(list, presetActivityId, readCurrentActivityId());
+      if (!picked) return;
+      writeCurrentActivityId(picked.id);
+      setFormData(prev => ({
+        ...prev,
+        activityId: picked.id,
+        amount: prev.amount === '' ? defaultAmountOf(picked) : prev.amount,
+      }));
     } catch {
-      setActivitiesError(true);
+      setActivitiesState('error');
     }
-  }, [isEditMode]);
+  }, [isEditMode, presetActivityId]);
 
   const loadExisting = useCallback(async () => {
     if (!editId) return;
@@ -107,7 +119,7 @@ const RegistrationForm: React.FC = () => {
           address: existing.address,
           registrationDate: existing.registrationDate,
           paymentType: existing.paymentType,
-          amount: String(existing.amount),
+          amount: formatAmountInput(String(existing.amount)),
           activityId: existing.activityId,
         });
       }
@@ -126,6 +138,13 @@ const RegistrationForm: React.FC = () => {
     void loadExisting();
   }, [loadExisting]);
 
+  useEffect(() => {
+    if (isEditMode) return;
+    const focusLastName = () => document.getElementById('lastName')?.focus();
+    window.addEventListener(FOCUS_LAST_NAME_EVENT, focusLastName);
+    return () => window.removeEventListener(FOCUS_LAST_NAME_EVENT, focusLastName);
+  }, [isEditMode]);
+
   const clearErrors = (keys: RegistrationFormField[]) => {
     setErrors(prev => (keys.some(k => prev[k]) ? omitKeys(prev, keys) : prev));
   };
@@ -133,6 +152,12 @@ const RegistrationForm: React.FC = () => {
   const setFieldValue = (name: RegistrationFormField, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     clearErrors([name]);
+    if (!isEditMode) timing.markInput();
+  };
+
+  const handleContactFieldChange = (name: 'lastName' | 'firstName' | 'phone', value: string) => {
+    setFieldValue(name, value);
+    setContactNote(null);
   };
 
   const fillFromContact = (contact: Contact) => {
@@ -143,22 +168,23 @@ const RegistrationForm: React.FC = () => {
       phone: contact.phone,
       address: contact.address || prev.address,
     }));
-    clearErrors(contact.address ? [...CONTACT_FIELDS, 'address'] : CONTACT_FIELDS);
+    clearErrors(['lastName', 'firstName', 'phone', 'address']);
+    setContactNote(`Coordonnées reprises du carnet : ${contact.phone}`);
+    focusSoon(paymentRadioId(formData.paymentType));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const name = e.target.name as RegistrationFormField;
-    const { value } = e.target;
+  const handleActivityChange = (activityId: string) => {
     setFormData(prev => {
-      const next = { ...prev, [name]: value };
-      if (name !== 'activityId' || isEditMode) return next;
-      const picked = activities.find(a => a.id === value);
-      const canPrefill = prev.amount === '' || prev.amount === '0';
-      return picked?.defaultAmount !== undefined && canPrefill
-        ? { ...next, amount: String(picked.defaultAmount) }
-        : next;
+      if (isEditMode) return { ...prev, activityId };
+      const isAmountUntouched = prev.amount === '' || prev.amount === defaultAmountOf(activitiesById.get(prev.activityId));
+      return {
+        ...prev,
+        activityId,
+        amount: isAmountUntouched ? defaultAmountOf(activitiesById.get(activityId)) : prev.amount,
+      };
     });
-    clearErrors([name]);
+    if (!isEditMode) writeCurrentActivityId(activityId);
+    clearErrors(['activityId', 'amount']);
   };
 
   const releaseSubmit = () => {
@@ -166,13 +192,34 @@ const RegistrationForm: React.FC = () => {
     setIsSubmitting(false);
   };
 
+  const resetEntry = () => {
+    setFormData(prev => resetFormAfterSave(prev, activitiesById.get(prev.activityId)));
+    setErrors({});
+    setContactNote(null);
+    focusSoon('lastName');
+  };
+
+  const handleCreated = (saved: Registration) => {
+    if (saved.id) addEntry(toSessionEntry(saved));
+    timing.recordSaved();
+    setLastSaved(saved);
+    resetEntry();
+    releaseSubmit();
+  };
+
+  const returnPath = returnsToEntry ? '/add' : listHrefOf(formData.activityId);
+
   const persist = async () => {
+    const payload = buildRegistrationPayload(formData);
     try {
-      const payload = buildRegistrationPayload(formData);
-      if (isEditMode && editId) await updateRegistration({ id: editId, ...payload });
-      else await addRegistration(payload);
-      setIsSuccess(true);
-      redirectTimerRef.current = window.setTimeout(() => navigate('/registrations'), REDIRECT_DELAY_MS);
+      if (isEditMode && editId) {
+        await updateRegistration({ id: editId, ...payload });
+        navigate(returnPath, { state: { flash: 'Inscription modifiée.' } });
+        return;
+      }
+      const created = await addRegistration(payload);
+      // Valeurs de repli si la couche données ne renvoie pas l'inscription complète.
+      handleCreated({ ...payload, ...created, id: created?.id ?? '', createdAt: created?.createdAt ?? Date.now() });
     } catch (err) {
       const detail = errorMessage(err, '');
       setSubmitError(
@@ -185,11 +232,15 @@ const RegistrationForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // M2 : verrou posé avant toute attente, contre le double clic / double Entrée.
-    if (submittingRef.current) return;
+    if (submittingRef.current || activitiesState !== 'ready') return;
     setSubmitError(null);
     const found = validateRegistrationForm(formData);
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    const firstInvalid = firstInvalidField(found);
+    if (firstInvalid) {
+      focusSoon(elementIdOf(firstInvalid, formData.paymentType));
+      return;
+    }
 
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -221,6 +272,12 @@ const RegistrationForm: React.FC = () => {
     releaseSubmit();
   };
 
+  const handleClearEntry = () => {
+    timing.reset();
+    setSubmitError(null);
+    resetEntry();
+  };
+
   if (isLoadingExisting) return <RegistrationFormSkeleton />;
   if (existingLoadError) {
     return <LoadError message="Impossible de charger cette inscription." onRetry={() => void loadExisting()} />;
@@ -228,154 +285,128 @@ const RegistrationForm: React.FC = () => {
   if (notFound) return <RegistrationNotFound onBack={() => navigate('/registrations')} />;
 
   const selectableActivities = activities.filter(a => !a.archivedAt || a.id === formData.activityId);
-  const inputClass = (field: RegistrationFormField, extra = '') =>
-    `input-field ${extra} ${errors[field] ? 'has-error' : ''}`.trim();
-  const contactInputProps = (field: 'lastName' | 'firstName' | 'phone', type: string, placeholder?: string) => ({
-    type,
-    id: field,
-    name: field,
-    placeholder,
-    autoComplete: 'off',
-    className: inputClass(field),
-    ...fieldA11y(field, errors),
-  });
-
-  if (isSuccess) {
-    return (
-      <div className="p-6 max-w-2xl">
-        <div className="panel p-8 text-center" role="status">
-          <CheckCircle className="h-10 w-10 text-emerald-600 mx-auto mb-3" aria-hidden="true" />
-          <p className="text-base font-medium text-emerald-800">
-            {isEditMode ? 'Inscription modifiée !' : 'Inscription enregistrée !'}
-          </p>
-          <p className="text-xs text-gray-600 mt-1">Redirection...</p>
-        </div>
-      </div>
-    );
-  }
+  const currentActivity = activitiesById.get(formData.activityId);
+  const isSubmitDisabled = isSubmitting || activitiesState !== 'ready';
 
   return (
-    <div className="p-6 max-w-2xl">
-      <form onSubmit={handleSubmit} className="panel" noValidate>
-        <div className="p-4 space-y-4">
-          <ActivityField
+    <div className="px-6 py-5">
+      <div className="flex flex-col xl:flex-row xl:items-start gap-6">
+        <form onSubmit={handleSubmit} className="panel rounded-card shadow-card w-full max-w-[45rem]" noValidate>
+          <ActivityBar
             value={formData.activityId}
             activities={selectableActivities}
+            isLoading={activitiesState === 'loading'}
+            hasLoadError={activitiesState === 'error'}
             error={errors.activityId}
-            hasLoadError={activitiesError}
-            onChange={handleChange}
+            onChange={handleActivityChange}
             onRetry={() => void loadActivities()}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="lastName" className="block text-xs font-medium text-gray-700 mb-1">
-                Nom <span className="text-red-600" aria-hidden="true">*</span>
-              </label>
-              <ContactAutocomplete
-                value={formData.lastName}
-                onChange={(v) => setFieldValue('lastName', v)}
-                onSelect={fillFromContact}
-                enabled={!isEditMode}
-                inputProps={contactInputProps('lastName', 'text')}
-              />
-              <FieldError id="lastName-error" message={errors.lastName} />
-            </div>
-            <div>
-              <label htmlFor="firstName" className="block text-xs font-medium text-gray-700 mb-1">
-                Prénoms <span className="text-red-600" aria-hidden="true">*</span>
-              </label>
-              <ContactAutocomplete
-                value={formData.firstName}
-                onChange={(v) => setFieldValue('firstName', v)}
-                onSelect={fillFromContact}
-                enabled={!isEditMode}
-                inputProps={contactInputProps('firstName', 'text')}
-              />
-              <FieldError id="firstName-error" message={errors.firstName} />
-            </div>
-          </div>
+          <SavedBanner saved={isEditMode ? null : lastSaved} />
 
-          <div>
-            <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-1">
-              Téléphone <span className="text-red-600" aria-hidden="true">*</span>
-            </label>
-            <ContactAutocomplete
-              value={formData.phone}
-              onChange={(v) => setFieldValue('phone', v)}
-              onSelect={fillFromContact}
-              enabled={!isEditMode}
-              inputProps={{ ...contactInputProps('phone', 'tel', '07 07 07 07 07'), inputMode: 'tel' }}
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <IdentityFields
+              form={formData}
+              errors={errors}
+              isEditMode={isEditMode}
+              contactNote={contactNote}
+              onContactFieldChange={handleContactFieldChange}
+              onAddressChange={(value) => setFieldValue('address', value)}
+              onContactSelect={fillFromContact}
             />
-            <FieldError id="phone-error" message={errors.phone} />
+
+            <div className="sm:col-span-2 flex flex-wrap items-start gap-4">
+              <PaymentSegment
+                value={formData.paymentType}
+                onChange={(type) => setFormData(prev => ({ ...prev, paymentType: type }))}
+              />
+              <AmountField
+                value={formData.amount}
+                errors={errors}
+                onChange={(value) => setFieldValue('amount', value)}
+                onBlur={() => setFormData(prev => ({ ...prev, amount: formatAmountInput(prev.amount) }))}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <DateField
+                value={formData.registrationDate}
+                today={today}
+                isOpen={isDateOpen}
+                isEditMode={isEditMode}
+                error={errors.registrationDate}
+                onOpen={() => setIsDateOpen(true)}
+                onChange={(value) => setFieldValue('registrationDate', value)}
+              />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="address" className="block text-xs font-medium text-gray-700 mb-1">
-              Adresse <span className="text-red-600" aria-hidden="true">*</span>
-            </label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows={2}
-              className={inputClass('address', 'resize-none')}
-              {...fieldA11y('address', errors)}
-            />
-            <FieldError id="address-error" message={errors.address} />
-          </div>
+          {submitError && (
+            <div role="alert" className="mx-4 mb-4 flex items-start gap-2 px-3 py-2 rounded-control border border-danger-line bg-danger-soft text-sm text-danger">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{submitError}</span>
+            </div>
+          )}
 
-          <DateAmountFields
-            registrationDate={formData.registrationDate}
-            amount={formData.amount}
-            errors={errors}
-            onChange={handleChange}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 bg-surface-subtle rounded-b-card">
+            {isEditMode ? (
+              <span />
+            ) : (
+              <button type="button" onClick={handleClearEntry} className="btn btn-ghost btn-lg">
+                <Eraser className="h-4 w-4" aria-hidden="true" />
+                Effacer la saisie
+              </button>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {isEditMode ? (
+                <button type="button" onClick={() => navigate(returnPath)} className="btn btn-default btn-lg">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  Annuler
+                </button>
+              ) : (
+                <Link to={listHrefOf(formData.activityId)} className="btn btn-default btn-lg">
+                  <List className="h-4 w-4" aria-hidden="true" />
+                  Voir la liste
+                </Link>
+              )}
+              <button
+                type="submit"
+                disabled={isSubmitDisabled}
+                aria-busy={isSubmitting}
+                aria-keyshortcuts="Enter"
+                className="btn btn-brand btn-lg disabled:opacity-60 disabled:pointer-events-none"
+              >
+                <Save className="h-4 w-4" aria-hidden="true" />
+                {isSubmitting
+                  ? isEditMode ? 'Mise à jour...' : 'Enregistrement...'
+                  : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
+                <kbd className="kbd border-white/60 text-white" aria-hidden="true">Entrée</kbd>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {!isEditMode && (
+          <SessionPanel
+            entries={entriesForActivity(entries, formData.activityId)}
+            activityName={currentActivity?.name}
+            listHref={listHrefOf(formData.activityId)}
+            listLabel={currentActivity ? `Voir la liste de ${currentActivity.name}` : 'Voir la liste'}
           />
-
-          <PaymentFieldset value={formData.paymentType} onChange={handleChange} />
-        </div>
-
-        {submitError && (
-          <div role="alert" className="mx-4 mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <span>{submitError}</span>
-          </div>
         )}
-
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b">
-          <button type="button" onClick={() => navigate('/registrations')} className="btn btn-default">
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
-            Annuler
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting || activitiesError}
-            aria-busy={isSubmitting}
-            className="btn btn-primary disabled:opacity-60 disabled:pointer-events-none"
-          >
-            <Save className="h-3.5 w-3.5" aria-hidden="true" />
-            {isSubmitting
-              ? isEditMode ? 'Mise à jour...' : 'Enregistrement...'
-              : isEditMode ? 'Mettre à jour' : 'Enregistrer'}
-          </button>
-        </div>
-      </form>
+      </div>
 
       <ConfirmModal
         open={duplicate !== null}
         title="Inscription déjà existante"
-        message={
-          duplicate
-            ? `${duplicate.lastName} ${duplicate.firstName} (${duplicate.phone}) est déjà inscrit(e) à cette activité. Voulez-vous quand même créer une nouvelle inscription ?`
-            : ''
-        }
+        message={duplicate ? duplicateMessage(duplicate, activitiesById.get(duplicate.activityId)?.name) : ''}
         confirmLabel="Créer quand même"
         cancelLabel="Annuler"
-        variant="danger"
         onConfirm={handleConfirmDuplicate}
         onCancel={handleCancelDuplicate}
       />
+
+      <Toast open={toast.open} variant={toast.variant} message={toast.message} onClose={closeToast} />
     </div>
   );
 };

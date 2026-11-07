@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Users, CalendarDays, Layers } from 'lucide-react';
 import { Activity, Registration } from '../types';
 import { formatAmount } from './uiFormat';
+import { PAYMENT_METAS } from './paymentMeta';
 
 export const RegistrationListSkeleton: React.FC = () => (
   <div className="h-full flex flex-col" aria-busy="true">
@@ -43,18 +44,13 @@ const sumTotals = (rows: Registration[]): Totals => ({
 export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ rows }) => {
   const stats = useMemo(() => ({
     all: sumTotals(rows),
-    wave: sumTotals(rows.filter(r => r.paymentType === 'wave')),
-    orange: sumTotals(rows.filter(r => r.paymentType === 'orange_money')),
-    cash: sumTotals(rows.filter(r => r.paymentType === 'cash')),
+    byPayment: PAYMENT_METAS.map(meta => ({
+      meta,
+      totals: sumTotals(rows.filter(r => r.paymentType === meta.type)),
+    })),
   }), [rows]);
 
   if (stats.all.count === 0) return null;
-
-  const byPayment: { label: string; totals: Totals; border: string; text: string }[] = [
-    { label: 'Wave', totals: stats.wave, border: 'border-l-blue-400', text: 'text-blue-700' },
-    { label: 'Orange Money', totals: stats.orange, border: 'border-l-orange-400', text: 'text-orange-800' },
-    { label: 'Espèce', totals: stats.cash, border: 'border-l-emerald-400', text: 'text-emerald-800' },
-  ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-3 py-2 border-b border-gray-200 bg-white">
@@ -66,11 +62,15 @@ export const RegistrationStatsStrip: React.FC<{ rows: Registration[] }> = ({ row
         <div className="text-[10px] font-medium uppercase tracking-wider text-gray-600">Montant total</div>
         <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">{formatAmount(stats.all.amount)}</div>
       </div>
-      {byPayment.map(p => (
-        <div key={p.label} className={`panel px-3 py-2 border-l-2 ${p.border}`}>
-          <div className={`text-[10px] font-medium uppercase tracking-wider ${p.text}`}>{p.label}</div>
+      {stats.byPayment.map(({ meta, totals }) => (
+        <div key={meta.type} className="panel px-3 py-2 relative overflow-hidden">
+          <span className={`absolute inset-y-0 left-0 w-1 ${meta.fillClass}`} aria-hidden="true" />
+          <div className={`flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider ${meta.textClass}`}>
+            <meta.icon className="h-3 w-3" aria-hidden="true" />
+            {meta.label}
+          </div>
           <div className="text-base font-semibold text-gray-900 tabular-nums mt-0.5">
-            {p.totals.count} <span className="text-xs font-normal text-gray-600">· {formatAmount(p.totals.amount)}</span>
+            {totals.count} <span className="text-xs font-normal text-gray-600">· {formatAmount(totals.amount)}</span>
           </div>
         </div>
       ))}

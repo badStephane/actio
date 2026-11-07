@@ -18,6 +18,8 @@ import { Registration, Activity } from '../types';
 import LoadError from '../components/LoadError';
 import ImportReviewBanner from '../components/ImportReviewBanner';
 import { formatDateLong } from '../components/uiFormat';
+import { PAYMENT_ORDER } from '../components/paymentMeta';
+import { pickCurrentActivity, readCurrentActivityId, writeCurrentActivityId } from '../components/currentActivity';
 import {
   KpiCard,
   PaymentBreakdown,
@@ -40,23 +42,6 @@ const daysBetween = (fromIso: string, toIso: string): number => {
 };
 
 
-const STORAGE_KEY = 'home.currentActivityId';
-
-const pickCurrentActivity = (activities: Activity[]): Activity | null => {
-  const live = activities.filter(a => !a.archivedAt);
-  if (live.length === 0) return null;
-
-  const today = todayIso();
-  const upcoming = live
-    .filter(a => a.eventDate && a.eventDate >= today)
-    .sort((a, b) => (a.eventDate ?? '').localeCompare(b.eventDate ?? ''));
-  if (upcoming.length > 0) return upcoming[0];
-
-  // No upcoming → fall back to most recently created non-archived
-  return live.slice().sort((a, b) => b.createdAt - a.createdAt)[0];
-};
-
-
 interface DashboardData {
   registrations: Registration[];
   activities: Activity[];
@@ -65,13 +50,11 @@ interface DashboardData {
 const Home: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [currentActivityId, setCurrentActivityIdState] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY) ?? '';
-  });
+  const [currentActivityId, setCurrentActivityIdState] = useState<string>(readCurrentActivityId);
 
+  // Activité du guichet partagée avec la saisie (Lot 1, U1).
   const setCurrentActivityId = useCallback((id: string) => {
-    if (id) localStorage.setItem(STORAGE_KEY, id);
-    else localStorage.removeItem(STORAGE_KEY);
+    writeCurrentActivityId(id);
     setCurrentActivityIdState(id);
   }, []);
 
@@ -86,7 +69,7 @@ const Home: React.FC = () => {
       setData({ registrations, activities });
       // Auto-pick current activity if none selected, or stored id is no
       // longer valid (deleted, archived).
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = readCurrentActivityId();
       const liveActivities = activities.filter(a => !a.archivedAt);
       const isStoredValid = stored && liveActivities.some(a => a.id === stored);
       if (!isStoredValid) {
@@ -133,9 +116,7 @@ const Home: React.FC = () => {
     const total = registrations.length;
     const totalAmount = sumOf(registrations);
 
-    const breakdown: PaymentBreakdown[] = (
-      ['wave', 'orange_money', 'cash'] as Registration['paymentType'][]
-    ).map(type => {
+    const breakdown: PaymentBreakdown[] = PAYMENT_ORDER.map(type => {
       const list = registrations.filter(r => r.paymentType === type);
       return {
         type,

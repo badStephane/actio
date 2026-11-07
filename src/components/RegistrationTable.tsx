@@ -2,18 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Activity, Registration } from '../types';
-import { formatAmount, PAYMENT_LABEL } from './uiFormat';
+import { formatAmount } from './uiFormat';
+import PaymentBadge from './PaymentBadge';
 
 export type SortKey = 'name' | 'date' | 'amount' | 'payment';
 export type SortDirection = 'asc' | 'desc';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-const PAYMENT_BADGE_CLASS: Record<Registration['paymentType'], string> = {
-  wave: 'bg-blue-100 text-blue-800',
-  cash: 'bg-emerald-100 text-emerald-800',
-  orange_money: 'bg-orange-100 text-orange-800',
-};
 
 interface RegistrationTableProps {
   rows: Registration[];
@@ -105,9 +100,7 @@ const RegistrationTable: React.FC<RegistrationTableProps> = ({
                 {formatAmount(r.amount)}
               </td>
               <td className="px-3 py-2 whitespace-nowrap">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${PAYMENT_BADGE_CLASS[r.paymentType]}`}>
-                  {PAYMENT_LABEL[r.paymentType]}
-                </span>
+                <PaymentBadge type={r.paymentType} />
               </td>
               <td className="px-3 py-2">
                 <div className="flex items-center justify-center gap-1">
